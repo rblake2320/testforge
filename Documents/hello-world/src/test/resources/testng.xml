@@ -1,0 +1,23 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="TestForge Suite" verbose="1">
+
+    <!-- Existing JUnit 4 tests (untouched) -->
+    <!-- Note: SeleniumFormTest and BestBuyPS5CheckoutTest use JUnit 4 and are run separately -->
+    <test name="Legacy JUnit Tests">
+        <classes>
+            <class name="com.example.MainTest"/>
+        </classes>
+    </test>
+
+    <!-- TestForge Cucumber BDD tests -->
+    <test name="TestForge BDD Tests">
+        <listeners>
+            <listener class-name="com.testforge.runner.AllureListener"/>
+            <listener class-name="com.testforge.runner.JiraResultListener"/>
+        </listeners>
+        <classes>
+            <class name="com.testforge.runner.TestRunner"/>
+        </classes>
+    </test>
+
+</suite>
