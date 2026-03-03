@@ -1,0 +1,108 @@
+name: TestForge
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'Documents/hello-world/src/**'
+      - 'Documents/hello-world/pom.xml'
+
+  schedule:
+    - cron: '0 6 * * 1-5'   # 6 AM UTC, Mon–Fri
+
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Cucumber tag filter (e.g. @smoke, @regression)'
+        required: false
+        default: '@smoke'
+      browser:
+        description: 'Browser: chrome or firefox'
+        required: false
+        default: 'chrome'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'microsoft'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('Documents/hello-world/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Run tests
+        id: run-tests
+        working-directory: Documents/hello-world
+        continue-on-error: true
+        env:
+          JIRA_ENABLED: ${{ secrets.JIRA_ENABLED }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_PROJECT: ${{ secrets.JIRA_PROJECT }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        run: |
+          mvn test \
+            -Dheadless=true \
+            -Dbrowser=${{ inputs.browser || 'chrome' }} \
+            -Dcucumber.filter.tags="${{ inputs.tags || '@smoke' }}" \
+            -Djira.enabled="${JIRA_ENABLED:-false}" \
+            -Djira.url="${JIRA_URL}" \
+            -Djira.project="${JIRA_PROJECT}" \
+            -Djira.email="${JIRA_EMAIL}" \
+            -Djira.api.token="${JIRA_API_TOKEN}"
+
+      - name: Generate Allure report
+        if: always()
+        working-directory: Documents/hello-world
+        run: mvn allure:report --no-transfer-progress || true
+
+      - name: Upload Allure report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-report-${{ github.run_number }}
+          path: Documents/hello-world/target/site/allure-maven-plugin/
+          retention-days: 30
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-${{ github.run_number }}
+          path: Documents/hello-world/target/screenshots/
+          retention-days: 30
+
+      - name: Write job summary
+        if: always()
+        working-directory: Documents/hello-world
+        run: |
+          STATUS=${{ steps.run-tests.outcome == 'success' && '✅ PASSED' || '❌ FAILED' }}
+          echo "## TestForge Results — Run #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| | |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | $STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tags | \`${{ inputs.tags || '@smoke' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser | ${{ inputs.browser || 'chrome' }} (headless) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 [Download Allure report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if tests failed
+        if: steps.run-tests.outcome == 'failure'
+        run: exit 1
