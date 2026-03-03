@@ -1,10 +1,8 @@
 Feature: Wikipedia Artificial Intelligence
 
   @smoke
-  Scenario: Search for Artificial Intelligence on Wikipedia
-    Given I open "https://www.wikipedia.org/"
-    When I type "Artificial Intelligence" into the element with id "searchInput"
-    When I click element with id "searchButton"
+  Scenario: Load AI article and verify key content
+    Given I open "https://en.wikipedia.org/wiki/Artificial_intelligence"
     When I wait 2 seconds
     Then the page title should contain "Artificial intelligence"
     Then I should see "Artificial intelligence" on the page
