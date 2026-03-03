@@ -8,8 +8,8 @@ Feature: GitHub Homepage
     When I take a screenshot named "github-homepage"
 
   @smoke
-  Scenario: GitHub homepage has build software tagline
+  Scenario: GitHub homepage has current tagline
     Given I open "https://github.com"
-    Then I should see "Build and ship software" on the page
+    Then I should see "The future of building" on the page
     Then I should see "Sign up" on the page
     When I take a screenshot named "github-tagline"
