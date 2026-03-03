@@ -91,17 +91,16 @@ jobs:
         if: always()
         working-directory: Documents/hello-world
         run: |
-          STATUS=${{ steps.run-tests.outcome == 'success' && '✅ PASSED' || '❌ FAILED' }}
+          if [ "${{ steps.run-tests.outcome }}" = "success" ]; then STATUS="PASSED"; else STATUS="FAILED"; fi
           echo "## TestForge Results — Run #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| | |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| Status | $STATUS |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tags | \`${{ inputs.tags || '@smoke' }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Browser | ${{ inputs.browser || 'chrome' }} (headless) |" >> $GITHUB_STEP_SUMMARY
+          echo "| | |"         >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|"      >> $GITHUB_STEP_SUMMARY
+          echo "| Status  | $STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tags    | \`${{ inputs.tags || '@smoke' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser | ${{ inputs.browser || 'chrome' }} headless |" >> $GITHUB_STEP_SUMMARY
           echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📊 [Download Allure report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "[Download Allure report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
 
       - name: Fail if tests failed
         if: steps.run-tests.outcome == 'failure'
