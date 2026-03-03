@@ -9,6 +9,7 @@ Feature: Selenium Form Fill
     Then the page title should contain "Web form"
     When I type "Hello TestForge" into the element with id "my-text-id"
     When I take a screenshot named "form-filled"
+    When I scroll down
     When I click element with css "button[type='submit']"
     Then the element with id "message" should contain "Received!"
     When I take a screenshot named "form-submitted"
