@@ -1,16 +1,15 @@
 Feature: Web Navigation
   As a user
-  I want to navigate and search on websites
+  I want to navigate to websites
   So that I can verify the framework works with any site
 
   @smoke
-  Scenario: Open Best Buy and search for PS5
-    Given I open "https://www.bestbuy.com/site/searchpage.jsp?st=PlayStation+5+Console"
-    Then the page title should contain "Best Buy"
-    When I wait 3 seconds
+  Scenario: Verify PlayStation 5 information on Wikipedia
+    Given I open "https://en.wikipedia.org/wiki/PlayStation_5"
+    Then the page title should contain "PlayStation 5"
+    Then I should see "Sony" on the page
     When I scroll down
-    Then I should see "PlayStation" on the page
-    When I take a screenshot named "bestbuy-ps5-search"
+    When I take a screenshot named "ps5-wikipedia"
 
   @smoke
   Scenario: Verify Selenium documentation site loads
