@@ -89,7 +89,8 @@ public class CommonSteps {
     @When("I click element with css {string}")
     @Step("Click element by css: {0}")
     public void iClickElementWithCss(String css) {
-        getWait().until(ExpectedConditions.elementToBeClickable(By.cssSelector(css))).click();
+        WebElement el = getWait().until(ExpectedConditions.presenceOfElementLocated(By.cssSelector(css)));
+        ((JavascriptExecutor) driver()).executeScript("arguments[0].scrollIntoView({block:'center'}); arguments[0].click();", el);
     }
 
     // ── Input ─────────────────────────────────────────────────────────────────

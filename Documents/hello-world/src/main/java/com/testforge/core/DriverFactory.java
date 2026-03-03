@@ -74,6 +74,7 @@ public class DriverFactory {
         applyAntiBotOptions(options);
         if (headless) {
             options.addArguments("--headless=new");
+            options.addArguments("--window-size=1920,1080");
         }
         return new ChromeDriver(options);
     }
