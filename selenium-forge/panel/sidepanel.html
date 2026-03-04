@@ -989,7 +989,7 @@
     }
     .heal-reject:hover { background: var(--color-red); color: white; }
 
-    /* ─── Context Menu ────────────────────────────────────────────────────────────── */
+    /* ─── Context Menu ──────────────────────────────────────────────────────── */
     #context-menu {
       position: fixed;
       background: var(--color-surface);
@@ -1023,7 +1023,7 @@
     .ctx-sep { height: 1px; background: var(--color-border-soft); margin: 3px 0; }
     .ctx-shortcut { margin-left: auto; font-size: 10px; color: var(--color-text-4); }
 
-    /* ─── Export Modal ────────────────────────────────────────────────────────────── */
+    /* ─── Export Modal ──────────────────────────────────────────────────────── */
     #export-overlay {
       position: fixed;
       inset: 0;
@@ -1209,7 +1209,7 @@
     }
     .btn-primary:hover { background: var(--color-accent-hover); }
 
-    /* ─── Settings Modal ──────────────────────────────────────────────────────── */
+    /* ─── Settings Modal ───────────────────────────────────────────────────── */
     #settings-overlay {
       position: fixed;
       inset: 0;
@@ -1287,7 +1287,7 @@
     }
     .toggle.on::after { left: 16px; }
 
-    /* ─── Locator Suggestions ───────────────────────────────────────────────────── */
+    /* ─── Locator Suggestions ───────────────────────────────────────────────── */
     .suggest-dropdown {
       position: absolute;
       background: var(--color-surface);
@@ -1322,7 +1322,7 @@
       text-transform: uppercase;
     }
 
-    /* ─── Status Bar ──────────────────────────────────────────────────────────────── */
+    /* ─── Status Bar ────────────────────────────────────────────────────────── */
     #status-bar {
       height: 22px;
       display: flex;
@@ -1348,7 +1348,7 @@
     .status-dot.active { background: var(--color-red); animation: pulse 1s infinite alternate; }
     .status-sep { color: var(--color-border); }
 
-    /* ─── Empty State ─────────────────────────────────────────────────────────────── */
+    /* ─── Empty State ───────────────────────────────────────────────────────── */
     .empty-state {
       display: flex;
       flex-direction: column;
@@ -1364,11 +1364,11 @@
     .empty-state-title { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-3); }
     .empty-state-desc { font-size: var(--text-xs); line-height: 1.5; }
 
-    /* ─── Drag/drop indicator ─────────────────────────────────────────────────────── */
+    /* ─── Drag/drop indicator ───────────────────────────────────────────────── */
     .drag-over { outline: 2px dashed var(--color-accent) !important; }
     .drag-placeholder { height: 2px; background: var(--color-accent); margin: 0; }
 
-    /* ─── Recording pulse overlay ───────────────────────────────────────────────────────── */
+    /* ─── Recording pulse overlay ───────────────────────────────────────────── */
     #rec-indicator {
       position: fixed;
       top: 0;
@@ -1394,10 +1394,10 @@
 <!-- Recording indicator bar -->
 <div id="rec-indicator"></div>
 
-<!-- ─── App Shell ────────────────────────────────────────────────────────────────────────────── -->
+<!-- ─── App Shell ───────────────────────────────────────────────────────────── -->
 <div id="app">
 
-  <!-- ══ TOOLBAR ════════════════════════════════════════════════════════════════════ -->
+  <!-- ══ TOOLBAR ══════════════════════════════════════════════════════════════ -->
   <div id="toolbar">
     <!-- Record -->
     <button class="tb-btn" id="btn-record" title="Record (Alt+R)">
@@ -1445,10 +1445,14 @@
         <rect x="8.5" y="3" width="2.5" height="8" rx="1" fill="currentColor"/>
       </svg>
     </button>
+    <!-- Resume (hidden by default, shown when paused) -->
+    <button class="tb-btn" id="btn-resume" title="Resume" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M3 2l9 5-9 5V2z" fill="currentColor"/>
+      </svg>
+    </button>
 
     <div class="tb-sep"></div>
-
-    <!-- Step Through -->
     <button class="tb-btn" id="btn-step" title="Step Into (F10)">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
         <path d="M3 3l5 4-5 4V3z" fill="currentColor"/>
@@ -1465,6 +1469,22 @@
       <option value="500">Fast</option>
       <option value="100">Fastest</option>
     </select>
+
+    <div class="tb-sep"></div>
+
+    <!-- Undo / Redo -->
+    <button class="tb-btn" id="btn-undo" title="Undo (Ctrl+Z)">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M4 5H9.5C10.88 5 12 6.12 12 7.5S10.88 10 9.5 10H7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6 3L4 5l2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button class="tb-btn" id="btn-redo" title="Redo (Ctrl+Shift+Z)">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M10 5H4.5C3.12 5 2 6.12 2 7.5S3.12 10 4.5 10H7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 3l2 2-2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
 
     <div class="tb-sep"></div>
 
@@ -1511,10 +1531,10 @@
     </div>
   </div>
 
-  <!-- ══ MAIN BODY ════════════════════════════════════════════════════════════════════ -->
+  <!-- ══ MAIN BODY ════════════════════════════════════════════════════════════ -->
   <div id="main-body">
 
-    <!-- ── WORKSPACE SIDEBAR ──────────────────────────────────────────────────────────────────────── -->
+    <!-- ── WORKSPACE SIDEBAR ─────────────────────────────────────────────── -->
     <div id="sidebar">
       <div class="sidebar-tabs" role="tablist">
         <button class="sidebar-tab active" data-tab="suites" role="tab">Suites</button>
@@ -1530,6 +1550,9 @@
           <span>Test Suites</span>
           <button class="icon-btn" id="btn-add-suite" title="New Suite">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </button>
+          <button class="icon-btn" id="btn-delete-suite" title="Delete Suite">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 3h8M4 3V2h4v1M3 3v7.5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5V3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <button class="icon-btn" title="Collapse All">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4.5l4-3 4 3M2 7.5l4 3 4-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1624,7 +1647,7 @@
       <div class="sidebar-panel" id="panel-data">
         <div class="sidebar-toolbar">
           <span>Test Data</span>
-          <button class="icon-btn" title="Upload Data File">
+          <button class="icon-btn" id="btn-add-data" title="Upload Data File">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 4.5l3-3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 10h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
           </button>
         </div>
@@ -1657,7 +1680,7 @@
       <div class="sidebar-panel" id="panel-extensions">
         <div class="sidebar-toolbar">
           <span>Extensions</span>
-          <button class="icon-btn" title="Add Extension">
+          <button class="icon-btn" id="btn-add-extension" title="Add Extension">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           </button>
         </div>
@@ -1680,7 +1703,7 @@
       <div class="sidebar-panel" id="panel-profiles">
         <div class="sidebar-toolbar">
           <span>Profiles</span>
-          <button class="icon-btn" title="New Profile">
+          <button class="icon-btn" id="btn-add-profile" title="New Profile">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           </button>
         </div>
@@ -1708,14 +1731,14 @@
     <!-- Resize handle H -->
     <div class="resize-handle-h" id="resize-sidebar" role="separator" aria-orientation="vertical" title="Drag to resize"></div>
 
-    <!-- ── CENTER COLUMN ─────────────────────────────────────────────────────────────────────── -->
+    <!-- ── CENTER COLUMN ─────────────────────────────────────────────────── -->
     <div id="center-col">
 
-      <!-- ── TEST CASE EDITOR ─────────────────────────────────────────────────────────────────────── -->
+      <!-- ── TEST CASE EDITOR ────────────────────────────────────────────── -->
       <div id="editor-section">
         <div class="editor-header">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="color:var(--color-accent);flex-shrink:0"><path d="M1 1h11v11H1V1z" stroke="currentColor" stroke-width="1.2" rx="1"/><path d="M4 6.5h5M4 4h5M4 9h3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
-          <span class="editor-tc-name">Valid Login <span>— Login Tests</span></span>
+          <span class="editor-tc-name" id="test-case-title">Valid Login <span>— Login Tests</span></span>
           <span class="badge badge-idle" id="exec-status-badge">Idle</span>
           <span class="editor-meta">12 commands</span>
         </div>
@@ -1734,7 +1757,7 @@
             <tbody id="cmd-tbody">
               <!-- Row 1 – comment -->
               <tr class="cmd-row row-comment" data-row="0" draggable="true">
-                <td class="cmd-row-num" style="color:var(--color-text-4)">&#x2014;</td>
+                <td class="cmd-row-num" style="color:var(--color-text-4)">—</td>
                 <td colspan="3" class="cmd-command">// Navigate to login page</td>
               </tr>
               <!-- Row 2 -->
@@ -1847,9 +1870,16 @@
               <option value="run">
             </datalist>
             <label class="cmd-detail-label" for="det-target">Target</label>
-            <input type="text" class="cmd-detail-input" id="det-target" value="https://app.example.com/dashboard" autocomplete="off">
+            <div style="display:flex;gap:4px;align-items:center">
+              <input type="text" class="cmd-detail-input" id="det-target" value="https://app.example.com/dashboard" autocomplete="off" style="flex:1">
+              <button class="icon-btn" id="btn-pick-target" title="Select Target in Page">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6" cy="6" r="3" stroke="currentColor" stroke-width="1.2"/></svg>
+              </button>
+            </div>
             <label class="cmd-detail-label" for="det-value">Value</label>
             <input type="text" class="cmd-detail-input" id="det-value" value="10000" autocomplete="off">
+            <label class="cmd-detail-label" for="detail-comment">Comment</label>
+            <input type="text" class="cmd-detail-input" id="detail-comment" placeholder="Optional comment" autocomplete="off">
           </div>
           <div class="cmd-detail-actions">
             <button class="cmd-detail-btn" id="btn-insert-cmd">Insert Row</button>
@@ -1864,7 +1894,7 @@
       <!-- Resize handle V -->
       <div class="resize-handle-v" id="resize-artifacts"></div>
 
-      <!-- ── ARTIFACTS PANEL ─────────────────────────────────────────────────────────────────────── -->
+      <!-- ── ARTIFACTS PANEL ─────────────────────────────────────────────── -->
       <div id="artifacts">
         <div class="artifacts-tabs" role="tablist">
           <button class="artifacts-tab active" data-atab="log">Log</button>
@@ -1886,18 +1916,18 @@
                 <button class="log-filter-btn f-info">INFO</button>
                 <button class="log-filter-btn f-warn">WARN</button>
               </div>
-              <button class="icon-btn" title="Clear log" style="margin-left:auto">
+              <button class="icon-btn" id="btn-clear-log" title="Clear log" style="margin-left:auto">
                 <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 2l7 7M9 2L2 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
               </button>
             </div>
             <div class="log-entries" id="log-entries">
-              <div class="log-entry"><span class="log-ts">14:32:01</span><span class="log-level INFO">INFO</span><span class="log-msg">Test suite &quot;Login Tests&quot; started</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:01</span><span class="log-level INFO">INFO</span><span class="log-msg">Test suite "Login Tests" started</span></div>
               <div class="log-entry"><span class="log-ts">14:32:01</span><span class="log-level INFO">INFO</span><span class="log-msg">Running: Valid Login</span></div>
               <div class="log-entry"><span class="log-ts">14:32:02</span><span class="log-level PASS">PASS</span><span class="log-msg">open | https://app.example.com/login</span></div>
               <div class="log-entry"><span class="log-ts">14:32:03</span><span class="log-level PASS">PASS</span><span class="log-msg">waitForElementVisible | id=loginForm | 5000ms</span></div>
               <div class="log-entry"><span class="log-ts">14:32:03</span><span class="log-level PASS">PASS</span><span class="log-msg">type | id=email | test@example.com</span></div>
-              <div class="log-entry"><span class="log-ts">14:32:04</span><span class="log-level PASS">PASS</span><span class="log-msg">type | id=password | &bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span></div>
-              <div class="log-entry"><span class="log-ts">14:32:04</span><span class="log-level PASS">PASS</span><span class="log-msg">click | css=button[type=&quot;submit&quot;]</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:04</span><span class="log-level PASS">PASS</span><span class="log-msg">type | id=password | ••••••••</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:04</span><span class="log-level PASS">PASS</span><span class="log-msg">click | css=button[type="submit"]</span></div>
               <div class="log-entry"><span class="log-ts">14:32:05</span><span class="log-level INFO">INFO</span><span class="log-msg">Breakpoint hit at row 6. Execution paused.</span></div>
               <div class="log-entry"><span class="log-ts">14:32:06</span><span class="log-level INFO">INFO</span><span class="log-msg">Executing: waitForURL | https://app.example.com/dashboard</span></div>
             </div>
@@ -1950,7 +1980,7 @@
               </thead>
               <tbody>
                 <tr><td>email</td><td>test@example.com</td></tr>
-                <tr><td>password</td><td>&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</td></tr>
+                <tr><td>password</td><td>••••••••</td></tr>
                 <tr><td>baseURL</td><td>https://app.example.com</td></tr>
                 <tr><td>displayedName</td><td></td></tr>
                 <tr><td>timeout</td><td>5000</td></tr>
@@ -1999,54 +2029,47 @@
         </div>
       </div>
 
-    </div>
-  </div>
+    </div><!-- /#center-col -->
+  </div><!-- /#main-body -->
 
-  <!-- ─── STATUS BAR ─────────────────────────────────────────────────────────────────────────── -->
+  <!-- ─ Status Bar ────────────────────────────────────────────────────────────────────────────── -->
   <div id="status-bar">
     <div class="status-item">
-      <div class="status-dot active"></div>
-      <span>Recording</span>
+      <span class="status-dot" id="rec-dot"></span>
+      <span id="status-mode">Paused at row 7</span>
     </div>
-    <div class="status-sep">|</div>
-    <div class="status-item">
-      <span id="status-cmd-count">7 / 12 commands</span>
-    </div>
-    <div class="status-sep">|</div>
-    <div class="status-item">
-      <span id="status-suite-name">Login Tests</span>
-    </div>
-    <div class="status-sep">|</div>
-    <div class="status-item">
-      <span id="status-tc-name">Valid Login</span>
-    </div>
-    <div class="status-sep" style="margin-left:auto">|</div>
-    <div class="status-item">
-      <span id="status-profile">Profile: Production</span>
-    </div>
+    <span class="status-sep">·</span>
+    <div class="status-item">Suite: <strong>Login Tests</strong></div>
+    <span class="status-sep">·</span>
+    <div class="status-item">Pass: <span style="color:var(--color-green);font-weight:600">5</span></div>
+    <div class="status-item">Fail: <span style="color:var(--color-red);font-weight:600">0</span></div>
+    <span class="status-sep">·</span>
+    <div class="status-item" style="margin-left:auto">Profile: <strong>Production</strong></div>
   </div>
 
-</div>
+</div><!-- /#app -->
 
-<!-- ─── Context Menu ─────────────────────────────────────────────────────────────────────────── -->
+<!-- ─── Context Menu ────────────────────────────────────────────────────────────────────────────── -->
 <div id="context-menu" role="menu">
-  <div class="ctx-item" role="menuitem">Insert Row Above <span class="ctx-shortcut">Ins</span></div>
-  <div class="ctx-item" role="menuitem">Insert Row Below</div>
-  <div class="ctx-item" role="menuitem">Duplicate Row <span class="ctx-shortcut">⌘D</span></div>
-  <div class="ctx-sep"></div>
-  <div class="ctx-item" role="menuitem">Toggle Breakpoint <span class="ctx-shortcut">F9</span></div>
-  <div class="ctx-item" role="menuitem">Execute Step <span class="ctx-shortcut">F8</span></div>
-  <div class="ctx-sep"></div>
-  <div class="ctx-item danger" role="menuitem">Delete Row <span class="ctx-shortcut">Del</span></div>
+  <!-- Populated dynamically by JS -->
 </div>
 
-<!-- ─── Export Modal ─────────────────────────────────────────────────────────────────────────── -->
-<div id="export-overlay" role="dialog" aria-modal="true" aria-labelledby="export-title">
+<!-- ─── Locator Suggestions Dropdown ──────────────────────────────────────────────────────────────────────────── -->
+<div class="suggest-dropdown" id="suggest-dropdown">
+  <div class="suggest-item"><span class="suggest-type">ID</span> id=loginForm</div>
+  <div class="suggest-item"><span class="suggest-type">CSS</span> css=form.login-form</div>
+  <div class="suggest-item"><span class="suggest-type">XPATH</span> xpath=//form[@id='loginForm']</div>
+  <div class="suggest-item"><span class="suggest-type">NAME</span> name=loginForm</div>
+</div>
+
+<!-- ─── Export Modal ────────────────────────────────────────────────────────────────────────────── -->
+<div id="export-overlay" role="dialog" aria-modal="true" aria-label="Export Test Cases">
   <div id="export-modal">
     <div class="modal-header">
-      <span class="modal-title" id="export-title">Export Test Cases</span>
-      <button class="modal-close" id="close-export" aria-label="Close">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="margin-right:8px;color:var(--color-accent)"><path d="M8 2v9M4 8l4 3 4-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="modal-title">Export Test Cases</span>
+      <button class="modal-close" id="export-close" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       </button>
     </div>
     <div class="modal-body">
@@ -2054,241 +2077,592 @@
         <div class="export-left-title">Format</div>
         <div class="export-format-list">
           <div class="export-format-item selected">
-            <div class="export-format-icon" style="color:#2563eb">PY</div>
+            <div class="export-format-icon" style="background:#fef9c3;color:#854d0e">Jv</div>
             <div class="export-format-info">
-              <div class="export-format-name">Python</div>
-              <div class="export-format-sub">pytest + Selenium</div>
+              <div class="export-format-name">Java + TestNG</div>
+              <div class="export-format-sub">Selenium 4</div>
             </div>
           </div>
           <div class="export-format-item">
-            <div class="export-format-icon" style="color:#eab308">JS</div>
+            <div class="export-format-icon" style="background:#fef9c3;color:#854d0e">Jv</div>
             <div class="export-format-info">
-              <div class="export-format-name">JavaScript</div>
-              <div class="export-format-sub">WebdriverIO / Mocha</div>
+              <div class="export-format-name">Java + JUnit 5</div>
+              <div class="export-format-sub">Selenium 4</div>
             </div>
           </div>
           <div class="export-format-item">
-            <div class="export-format-icon" style="color:#16a34a">Java</div>
+            <div class="export-format-icon" style="background:#dbeafe;color:#1e40af">Py</div>
             <div class="export-format-info">
-              <div class="export-format-name">Java</div>
-              <div class="export-format-sub">JUnit5 / TestNG</div>
+              <div class="export-format-name">Python + pytest</div>
+              <div class="export-format-sub">Selenium 4</div>
             </div>
           </div>
           <div class="export-format-item">
-            <div class="export-format-icon" style="color:#7c3aed">C#</div>
+            <div class="export-format-icon" style="background:#ede9fe;color:#5b21b6">C#</div>
             <div class="export-format-info">
-              <div class="export-format-name">C# / .NET</div>
-              <div class="export-format-sub">NUnit / MSTest</div>
+              <div class="export-format-name">C# + NUnit</div>
+              <div class="export-format-sub">Selenium 4</div>
             </div>
           </div>
           <div class="export-format-item">
-            <div class="export-format-icon" style="color:#ea580c">RB</div>
+            <div class="export-format-icon" style="background:#fef3c7;color:#78350f">JS</div>
             <div class="export-format-info">
-              <div class="export-format-name">Ruby</div>
-              <div class="export-format-sub">RSpec</div>
+              <div class="export-format-name">JavaScript + Mocha</div>
+              <div class="export-format-sub">WebDriver.io</div>
             </div>
           </div>
           <div class="export-format-item">
-            <div class="export-format-icon" style="color:#0369a1">{}</div>
+            <div class="export-format-icon" style="background:#d1fae5;color:#064e3b">BDD</div>
             <div class="export-format-info">
-              <div class="export-format-name">JSON</div>
-              <div class="export-format-sub">Raw test data</div>
+              <div class="export-format-name">Cucumber/Gherkin</div>
+              <div class="export-format-sub">with Page Objects</div>
             </div>
           </div>
           <div class="export-format-item">
-            <div class="export-format-icon" style="color:#374151">FE</div>
-            <div class="export-format-info">
-              <div class="export-format-name">Selenium IDE</div>
-              <div class="export-format-sub">.side format</div>
-            </div>
-          </div>
-          <div class="export-format-item">
-            <div class="export-format-icon" style="color:#b45309">RF</div>
+            <div class="export-format-icon" style="background:#fce7f3;color:#831843">RF</div>
             <div class="export-format-info">
               <div class="export-format-name">Robot Framework</div>
-              <div class="export-format-sub">.robot file</div>
+              <div class="export-format-sub">.robot</div>
+            </div>
+          </div>
+          <div class="export-format-item">
+            <div class="export-format-icon" style="background:#fee2e2;color:#7f1d1d">Sel</div>
+            <div class="export-format-info">
+              <div class="export-format-name">Selenese HTML</div>
+              <div class="export-format-sub">Classic format</div>
+            </div>
+          </div>
+          <div class="export-format-item">
+            <div class="export-format-icon" style="background:#e0f2fe;color:#0c4a6e">{}</div>
+            <div class="export-format-info">
+              <div class="export-format-name">JSON</div>
+              <div class="export-format-sub">Re-importable</div>
             </div>
           </div>
         </div>
       </div>
+
       <div class="export-right">
         <div class="export-right-toolbar">
-          <span class="export-right-title">Preview — Python (pytest)</span>
-          <button class="btn btn-secondary" style="font-size:11px;padding:3px 8px">Copy</button>
+          <select id="export-format-select" style="padding:2px 6px;font-size:11px;flex:1">
+            <!-- Populated by app.js _populateExportFormats() -->
+          </select>
+          <select id="export-scope-select" style="padding:2px 6px;font-size:11px">
+            <option value="testcase">Current Test Case</option>
+            <option value="suite">Current Suite</option>
+            <option value="all">All Suites</option>
+          </select>
+          <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px">Copy</button>
         </div>
-        <div class="export-preview">
-          <div class="export-code">import pytest
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+        <div class="export-preview" id="export-preview">
+          <pre class="export-code">@Test(description = "Valid Login")
+public void validLogin() {
+    driver.get("https://app.example.com/login");
+    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
 
-class TestLoginTests:
+    wait.until(ExpectedConditions
+        .visibilityOfElementLocated(By.id("loginForm")));
 
-    def test_valid_login(self, driver):
-        """Valid Login"""
-        # Navigate to login page
-        driver.get("https://app.example.com/login")
-        WebDriverWait(driver, 5).until(
-            EC.visibility_of_element_located((By.ID, "loginForm"))
-        )
-        driver.find_element(By.ID, "email").send_keys(email)
-        driver.find_element(By.ID, "password").send_keys(password)
-        driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]').click()
-        WebDriverWait(driver, 10).until(
-            EC.url_to_be("https://app.example.com/dashboard")
-        )
-        assert driver.title == "Dashboard — MyApp"
-        assert driver.find_element(By.CSS_SELECTOR, ".user-avatar")
-        displayedName = driver.find_element(
-            By.CSS_SELECTOR, ".username-display").text
-        driver.save_screenshot("screenshot.png")</div>
+    driver.findElement(By.id("email"))
+          .sendKeys(email);
+    driver.findElement(By.id("password"))
+          .sendKeys(password);
+    driver.findElement(
+        By.cssSelector("button[type=\"submit\"]"))
+          .click();
+
+    wait.until(ExpectedConditions.urlToBe(
+        "https://app.example.com/dashboard"));
+    Assert.assertEquals(driver.getTitle(),
+        "Dashboard — MyApp");
+    Assert.assertTrue(
+        driver.findElement(By.cssSelector(".user-avatar"))
+              .isDisplayed());
+}</pre>
         </div>
       </div>
     </div>
+
     <div class="modal-footer">
-      <span class="modal-footer-info">Exporting 1 test case from &quot;Login Tests&quot;</span>
-      <button class="btn btn-secondary" id="close-export-2">Cancel</button>
-      <button class="btn btn-primary">Download File</button>
+      <div class="modal-footer-info">Exporting: <strong>Valid Login</strong> (1 test case)</div>
+      <button class="btn btn-secondary" id="export-cancel">Cancel</button>
+      <button class="btn btn-primary" id="export-download">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="display:inline;margin-right:4px"><path d="M6 1v7M3 5.5l3 2.5 3-2.5" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 11h10" stroke="white" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Download .java
+      </button>
     </div>
   </div>
 </div>
 
-<!-- ─── Settings Modal ────────────────────────────────────────────────────────────────────────── -->
-<div id="settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+<!-- ─── Settings Modal ────────────────────────────────────────────────────────────────────────────── -->
+<div id="settings-overlay" role="dialog" aria-modal="true" aria-label="Settings">
   <div id="settings-modal">
     <div class="modal-header">
-      <span class="modal-title" id="settings-title">Settings</span>
-      <button class="modal-close" id="close-settings" aria-label="Close">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="margin-right:8px;color:var(--color-accent)"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M2.93 2.93l1.41 1.41M11.66 11.66l1.41 1.41M2.93 13.07l1.41-1.41M11.66 4.34l1.41-1.41" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      <span class="modal-title">Settings</span>
+      <button class="modal-close" id="settings-close" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       </button>
     </div>
-    <div class="modal-body" style="flex-direction:column;overflow-y:auto">
+    <div style="overflow-y:auto;flex:1">
       <div class="settings-section">
         <div class="settings-section-title">Appearance</div>
         <div class="settings-row">
-          <div>
-            <div class="settings-label">Dark Mode</div>
-          </div>
-          <div class="toggle" id="toggle-theme"></div>
+          <div><div class="settings-label">Dark Mode</div></div>
+          <div class="toggle" id="setting-theme" onclick="this.classList.toggle('on');document.documentElement.dataset.theme=this.classList.contains('on')?'dark':'light'"></div>
         </div>
         <div class="settings-row">
-          <div>
-            <div class="settings-label">Font Size</div>
-          </div>
-          <select style="width:80px;height:24px;font-size:11px;padding:0 4px">
-            <option>11px</option>
-            <option selected>12px</option>
-            <option>13px</option>
-            <option>14px</option>
-          </select>
-        </div>
-      </div>
-      <div class="settings-section">
-        <div class="settings-section-title">Recording</div>
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Capture hover events</div>
-            <div class="settings-sub">Record mouseOver / mouseOut commands</div>
-          </div>
-          <div class="toggle on" id="toggle-hover"></div>
-        </div>
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Auto-generate assertions</div>
-            <div class="settings-sub">Add assertElementPresent after each click</div>
-          </div>
-          <div class="toggle" id="toggle-assert"></div>
-        </div>
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Smart waits</div>
-            <div class="settings-sub">Insert waitForElementVisible before interactions</div>
-          </div>
-          <div class="toggle on" id="toggle-wait"></div>
+          <div><div class="settings-label">Compact Row Height</div></div>
+          <div class="toggle on" id="toggle-compact"></div>
         </div>
       </div>
       <div class="settings-section">
         <div class="settings-section-title">Playback</div>
         <div class="settings-row">
           <div>
-            <div class="settings-label">Default speed</div>
+            <div class="settings-label">Default Timeout (ms)</div>
+            <div class="settings-sub">30000ms</div>
           </div>
-          <select style="width:80px;height:24px;font-size:11px;padding:0 4px">
-            <option>Slow</option>
-            <option selected>Medium</option>
-            <option>Fast</option>
-            <option>Fastest</option>
+          <input type="number" id="setting-timeout" value="30000" min="1000" max="120000" step="1000" style="width:70px;padding:3px 6px;font-size:var(--text-xs)">
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Default Speed</div>
+            <div class="settings-sub">Medium (1000ms)</div>
+          </div>
+          <select id="setting-speed" style="padding:3px 6px;font-size:var(--text-xs)">
+            <option>Slow (2s)</option>
+            <option selected>Medium (1s)</option>
+            <option>Fast (500ms)</option>
+            <option>Fastest (100ms)</option>
           </select>
         </div>
         <div class="settings-row">
-          <div>
-            <div class="settings-label">Screenshot on failure</div>
-          </div>
-          <div class="toggle on" id="toggle-ss"></div>
+          <div><div class="settings-label">Pause on Failure</div></div>
+          <div class="toggle on"></div>
         </div>
         <div class="settings-row">
-          <div>
-            <div class="settings-label">Self-healing locators</div>
-            <div class="settings-sub">Auto-repair broken selectors with AI</div>
-          </div>
-          <div class="toggle on" id="toggle-heal"></div>
+          <div><div class="settings-label">Screenshot on Failure</div></div>
+          <div class="toggle on" id="setting-screenshot"></div>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Enable Self-Healing</div></div>
+          <div class="toggle on" id="setting-selfheal"></div>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Max Self-Heal Attempts</div></div>
+          <input type="number" value="3" min="1" max="10" style="width:50px;padding:3px 6px;font-size:var(--text-xs)">
         </div>
       </div>
       <div class="settings-section">
-        <div class="settings-section-title">Advanced</div>
+        <div class="settings-section-title">Recording</div>
         <div class="settings-row">
-          <div>
-            <div class="settings-label">Base URL</div>
-          </div>
-          <input type="text" style="width:140px;height:24px;font-size:11px;padding:0 6px" placeholder="https://" value="https://app.example.com">
+          <div><div class="settings-label">Record Assertions</div></div>
+          <div class="toggle on"></div>
         </div>
         <div class="settings-row">
-          <div>
-            <div class="settings-label">Implicit wait (ms)</div>
-          </div>
-          <input type="number" style="width:60px;height:24px;font-size:11px;padding:0 6px" value="5000">
+          <div><div class="settings-label">Record Mouse Over</div></div>
+          <div class="toggle"></div>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Prefer CSS Selectors</div></div>
+          <div class="toggle on"></div>
         </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <span class="modal-footer-info">Changes are saved automatically</span>
-      <button class="btn btn-secondary" id="close-settings-2">Close</button>
-      <button class="btn btn-primary" id="btn-reset-settings">Reset to Defaults</button>
+    <div class="modal-footer" style="justify-content:flex-end">
+      <button class="btn btn-secondary" id="settings-cancel">Cancel</button>
+      <button class="btn btn-primary" id="btn-settings-save">Save Settings</button>
     </div>
   </div>
 </div>
 
-<!-- ─── Locator Suggestion Dropdown (example, positioned by JS) ─────────────────────── -->
-<div class="suggest-dropdown" id="suggest-dropdown">
-  <div class="suggest-item">
-    <span class="suggest-type">CSS</span>
-    <span>button[type="submit"]</span>
-  </div>
-  <div class="suggest-item">
-    <span class="suggest-type">ID</span>
-    <span>id=submit-btn</span>
-  </div>
-  <div class="suggest-item">
-    <span class="suggest-type">XPATH</span>
-    <span>//button[@type='submit']</span>
-  </div>
-  <div class="suggest-item">
-    <span class="suggest-type">TEXT</span>
-    <span>link=Sign In</span>
-  </div>
-</div>
+<!-- ─── JS Scripts ────────────────────────────────────────────────────────────────────────────── -->
+<script>
+/* ════════════════════════════════════════════════════════════════════════════════
+   SeleniumForge Panel UI Controller (inline bootstrap)
+   Full logic in panel/js/ui/app.js — this handles DOM interactions
+════════════════════════════════════════════════════════════════════════════════ */
 
-<!-- Scripts -->
-<script src="js/core/storage.js" type="module"></script>
-<script src="js/core/state.js" type="module"></script>
-<script src="js/core/messaging.js" type="module"></script>
-<script src="js/engine/recorder.js" type="module"></script>
-<script src="js/engine/player.js" type="module"></script>
-<script src="js/engine/selfhealing.js" type="module"></script>
-<script src="js/engine/controlflow.js" type="module"></script>
-<script src="js/export/exporters.js" type="module"></script>
-<script src="js/ui/app.js" type="module"></script>
+(function () {
+  'use strict';
+
+  /* ── Theme ──────────────────────────────────────────────────────────────────────── */
+  const root = document.documentElement;
+  const btnTheme = document.getElementById('btn-theme');
+  btnTheme.addEventListener('click', () => {
+    const isDark = root.dataset.theme === 'dark';
+    root.dataset.theme = isDark ? 'light' : 'dark';
+    const toggleDark = document.getElementById('setting-theme');
+    if (toggleDark) toggleDark.classList.toggle('on', !isDark);
+  });
+
+  /* ── Sidebar Tab Switching ───────────────────────────────────────────────────── */
+  document.querySelectorAll('.sidebar-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.sidebar-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const panelId = 'panel-' + tab.dataset.tab;
+      const panel = document.getElementById(panelId);
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  /* ── Artifacts Tab Switching ──────────────────────────────────────────────────── */
+  document.querySelectorAll('.artifacts-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.artifacts-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.artifacts-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const panelId = 'apanel-' + tab.dataset.atab;
+      const panel = document.getElementById(panelId);
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  /* ── Tree Suite Expand/Collapse ──────────────────────────────────────────────── */
+  document.querySelectorAll('.tree-suite-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const arrow = header.querySelector('.tree-arrow');
+      const cases = header.nextElementSibling;
+      if (arrow) arrow.classList.toggle('open');
+      if (cases) cases.classList.toggle('open');
+    });
+  });
+
+  /* ── Tree Case Selection ─────────────────────────────────────────────────────── */
+  document.querySelectorAll('.tree-case').forEach(tc => {
+    tc.addEventListener('click', () => {
+      document.querySelectorAll('.tree-case').forEach(t => t.classList.remove('selected'));
+      tc.classList.add('selected');
+    });
+  });
+
+  /* ── Command Row Selection ───────────────────────────────────────────────────── */
+  const cmdRows = document.querySelectorAll('.cmd-row');
+  cmdRows.forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (!e.ctrlKey && !e.metaKey) {
+        cmdRows.forEach(r => r.classList.remove('selected'));
+      }
+      row.classList.toggle('selected');
+      const cmd = row.querySelector('.cmd-command');
+      const target = row.querySelector('.cmd-target');
+      const value = row.querySelector('.cmd-value');
+      if (cmd) document.getElementById('det-command').value = cmd.textContent.trim();
+      if (target) document.getElementById('det-target').value = target.textContent.trim();
+      if (value) document.getElementById('det-value').value = value.textContent.trim();
+    });
+  });
+
+  /* ── Command Row Right-Click Menu ──────────────────────────────────────────────── */
+  const ctxMenu = document.getElementById('context-menu');
+
+  const cmdCtxItems = [
+    { label: 'Execute This Command', icon: '▶', action: 'execute' },
+    { label: 'Insert Command Above', icon: '+', action: 'insert-above' },
+    { label: 'Insert Command Below', icon: '+', action: 'insert-below' },
+    { sep: true },
+    { label: 'Toggle Breakpoint', icon: '●', action: 'breakpoint' },
+    { label: 'Add Comment', icon: '//', action: 'comment' },
+    { sep: true },
+    { label: 'Copy', icon: '⎘', action: 'copy', shortcut: 'Ctrl+C' },
+    { label: 'Paste', icon: '⎘', action: 'paste', shortcut: 'Ctrl+V' },
+    { label: 'Duplicate', icon: '⧉', action: 'duplicate' },
+    { sep: true },
+    { label: 'Delete', icon: '✕', action: 'delete', danger: true, shortcut: 'Del' },
+  ];
+
+  const suiteCtxItems = [
+    { label: 'Add Suite', icon: '+', action: 'add-suite' },
+    { label: 'Add Test Case', icon: '+', action: 'add-tc' },
+    { sep: true },
+    { label: 'Rename', icon: '✎', action: 'rename', shortcut: 'F2' },
+    { label: 'Duplicate', icon: '⧉', action: 'duplicate' },
+    { label: 'Copy', icon: '⎘', action: 'copy', shortcut: 'Ctrl+C' },
+    { label: 'Paste', icon: '⎘', action: 'paste', shortcut: 'Ctrl+V' },
+    { sep: true },
+    { label: 'Delete', icon: '✕', action: 'delete', danger: true },
+  ];
+
+  function showContextMenu(items, x, y) {
+    ctxMenu.innerHTML = '';
+    items.forEach(item => {
+      if (item.sep) {
+        const sep = document.createElement('div');
+        sep.className = 'ctx-sep';
+        ctxMenu.appendChild(sep);
+      } else {
+        const el = document.createElement('div');
+        el.className = 'ctx-item' + (item.danger ? ' danger' : '');
+        el.setAttribute('role', 'menuitem');
+        el.innerHTML = `<span style="width:14px;text-align:center;font-size:11px">${item.icon || ''}</span>
+          <span>${item.label}</span>
+          ${item.shortcut ? `<span class="ctx-shortcut">${item.shortcut}</span>` : ''}`;
+        ctxMenu.appendChild(el);
+      }
+    });
+
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let cx = x, cy = y;
+    ctxMenu.classList.add('visible');
+    const rect = ctxMenu.getBoundingClientRect();
+    if (cx + rect.width > vw) cx = vw - rect.width - 4;
+    if (cy + rect.height > vh) cy = vh - rect.height - 4;
+    ctxMenu.style.left = cx + 'px';
+    ctxMenu.style.top  = cy + 'px';
+  }
+
+  function hideContextMenu() {
+    ctxMenu.classList.remove('visible');
+  }
+
+  document.getElementById('cmd-tbody').addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const row = e.target.closest('.cmd-row');
+    if (row) {
+      if (!row.classList.contains('selected')) {
+        cmdRows.forEach(r => r.classList.remove('selected'));
+        row.classList.add('selected');
+      }
+      showContextMenu(cmdCtxItems, e.clientX, e.clientY);
+    }
+  });
+
+  document.getElementById('suite-tree').addEventListener('contextmenu', e => {
+    e.preventDefault();
+    showContextMenu(suiteCtxItems, e.clientX, e.clientY);
+  });
+
+  document.addEventListener('click', hideContextMenu);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hideContextMenu(); });
+
+  /* ── Horizontal Resize (Sidebar) ──────────────────────────────────────────────── */
+  const resizeSidebar = document.getElementById('resize-sidebar');
+  const sidebar = document.getElementById('sidebar');
+  let isResizingSidebar = false, startXSidebar = 0, startWidthSidebar = 0;
+
+  resizeSidebar.addEventListener('mousedown', e => {
+    isResizingSidebar = true;
+    startXSidebar = e.clientX;
+    startWidthSidebar = sidebar.offsetWidth;
+    resizeSidebar.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isResizingSidebar) return;
+    const newWidth = Math.max(160, Math.min(380, startWidthSidebar + (e.clientX - startXSidebar)));
+    sidebar.style.width = newWidth + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (isResizingSidebar) {
+      isResizingSidebar = false;
+      resizeSidebar.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+
+  /* ── Vertical Resize (Artifacts) ──────────────────────────────────────────────── */
+  const resizeArtifacts = document.getElementById('resize-artifacts');
+  const artifacts = document.getElementById('artifacts');
+  const centerCol = document.getElementById('center-col');
+  let isResizingArtifacts = false, startYArt = 0, startHeightArt = 0;
+
+  resizeArtifacts.addEventListener('mousedown', e => {
+    isResizingArtifacts = true;
+    startYArt = e.clientY;
+    startHeightArt = artifacts.offsetHeight;
+    resizeArtifacts.classList.add('dragging');
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isResizingArtifacts) return;
+    const newHeight = Math.max(100, Math.min(centerCol.offsetHeight * 0.7, startHeightArt - (e.clientY - startYArt)));
+    artifacts.style.height = newHeight + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (isResizingArtifacts) {
+      isResizingArtifacts = false;
+      resizeArtifacts.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+
+  /* ── Record Button ──────────────────────────────────────────────────────────────────────── */
+  const btnRecord = document.getElementById('btn-record');
+  const statusMode = document.getElementById('status-mode');
+  const recDot = document.getElementById('rec-dot');
+  const recIndicator = document.getElementById('rec-indicator');
+  const execBadge = document.getElementById('exec-status-badge');
+  let recording = false;
+
+  btnRecord.addEventListener('click', () => {
+    recording = !recording;
+    btnRecord.classList.toggle('active', recording);
+    recIndicator.classList.toggle('active', recording);
+    recDot.classList.toggle('active', recording);
+    if (recording) {
+      statusMode.textContent = 'Recording…';
+      execBadge.className = 'badge badge-recording';
+      execBadge.textContent = 'Recording';
+    } else {
+      statusMode.textContent = 'Idle';
+      execBadge.className = 'badge badge-idle';
+      execBadge.textContent = 'Idle';
+    }
+  });
+
+  /* ── Play buttons (visual feedback) ────────────────────────────────────────────── */
+  document.getElementById('btn-play-tc').addEventListener('click', () => {
+    execBadge.className = 'badge badge-playing';
+    execBadge.textContent = 'Playing';
+    statusMode.textContent = 'Playing test case…';
+  });
+  document.getElementById('btn-stop').addEventListener('click', () => {
+    execBadge.className = 'badge badge-idle';
+    execBadge.textContent = 'Idle';
+    statusMode.textContent = 'Stopped';
+    recording = false;
+    btnRecord.classList.remove('active');
+    recIndicator.classList.remove('active');
+    recDot.classList.remove('active');
+  });
+
+  /* ── Export Modal ────────────────────────────────────────────────────────────────────── */
+  const exportOverlay = document.getElementById('export-overlay');
+  document.getElementById('btn-export').addEventListener('click', () => exportOverlay.classList.add('visible'));
+  document.getElementById('btn-export-tc').addEventListener('click', () => exportOverlay.classList.add('visible'));
+  document.getElementById('export-close').addEventListener('click', () => exportOverlay.classList.remove('visible'));
+  document.getElementById('export-cancel').addEventListener('click', () => exportOverlay.classList.remove('visible'));
+  exportOverlay.addEventListener('click', e => { if (e.target === exportOverlay) exportOverlay.classList.remove('visible'); });
+
+  document.querySelectorAll('.export-format-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.export-format-item').forEach(i => i.classList.remove('selected'));
+      item.classList.add('selected');
+      const name = item.querySelector('.export-format-name')?.textContent;
+      document.querySelector('.export-right-title').textContent = 'Preview — ' + name;
+    });
+  });
+
+  /* ── Settings Modal ────────────────────────────────────────────────────────────────────── */
+  const settingsOverlay = document.getElementById('settings-overlay');
+  document.getElementById('btn-settings').addEventListener('click', () => settingsOverlay.classList.add('visible'));
+  document.getElementById('settings-close').addEventListener('click', () => settingsOverlay.classList.remove('visible'));
+  document.getElementById('settings-cancel').addEventListener('click', () => settingsOverlay.classList.remove('visible'));
+  settingsOverlay.addEventListener('click', e => { if (e.target === settingsOverlay) settingsOverlay.classList.remove('visible'); });
+
+  /* ── Log filter buttons ────────────────────────────────────────────────────────── */
+  document.querySelectorAll('.log-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.log-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  /* ── Toggle switches ───────────────────────────────────────────────────────────────────── */
+  document.querySelectorAll('.toggle').forEach(t => {
+    t.addEventListener('click', function() {
+      if (!this.id) this.classList.toggle('on');
+    });
+  });
+
+  /* ── Self-Healing approve/reject ──────────────────────────────────────────────────── */
+  document.querySelectorAll('.heal-approve').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.heal-item');
+      item.style.opacity = '0';
+      item.style.transition = 'opacity 200ms';
+      setTimeout(() => item.remove(), 200);
+    });
+  });
+  document.querySelectorAll('.heal-reject').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.heal-item');
+      item.style.opacity = '0.3';
+      item.style.transition = 'opacity 200ms';
+      const actions = item.querySelector('.heal-actions');
+      if (actions) actions.innerHTML = '<span style="font-size:var(--text-xs);color:var(--color-text-4)">Rejected</span>';
+    });
+  });
+
+  /* ── Inline cell editing ─────────────────────────────────────────────────────────────────── */
+  document.querySelectorAll('.cmd-row td:not(:first-child)').forEach(cell => {
+    cell.addEventListener('dblclick', () => {
+      const currentText = cell.textContent.trim();
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentText;
+      input.className = 'cmd-cell-edit';
+      cell.innerHTML = '';
+      cell.appendChild(input);
+      input.focus();
+      input.select();
+      input.addEventListener('blur', () => {
+        cell.textContent = input.value;
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { cell.textContent = currentText; }
+      });
+    });
+  });
+
+  /* ── Keyboard shortcuts ──────────────────────────────────────────────────────────────────── */
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    if (e.key === 'F5') { e.preventDefault(); document.getElementById('btn-play-tc').click(); }
+    if (e.key === 'Escape') { document.getElementById('btn-stop').click(); }
+    if ((e.altKey || e.metaKey) && e.key === 'r') { e.preventDefault(); btnRecord.click(); }
+  });
+
+  /* ── Add Suite button ──────────────────────────────────────────────────────────────────── */
+  document.getElementById('btn-add-suite').addEventListener('click', () => {
+    const tree = document.getElementById('suite-tree');
+    const newSuite = document.createElement('div');
+    newSuite.className = 'tree-suite';
+    newSuite.draggable = true;
+    newSuite.innerHTML = `
+      <div class="tree-suite-header">
+        <svg class="tree-arrow" width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 2l3 3-3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="tree-suite-icon" width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="2" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 2V1M8 2V1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M1 5h10" stroke="currentColor" stroke-width="1.2"/></svg>
+        <span class="tree-suite-name" contenteditable="true" style="outline:1px solid var(--color-accent);border-radius:2px;padding:0 2px">New Suite</span>
+        <span class="tree-suite-count">0</span>
+        <span class="tree-suite-status none"></span>
+      </div>
+      <div class="tree-cases"></div>
+    `;
+    tree.appendChild(newSuite);
+    const nameEl = newSuite.querySelector('.tree-suite-name');
+    nameEl.focus();
+    const range = document.createRange();
+    range.selectNodeContents(nameEl);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    nameEl.addEventListener('blur', () => { nameEl.removeAttribute('contenteditable'); nameEl.style.outline = ''; });
+    nameEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }});
+    const header = newSuite.querySelector('.tree-suite-header');
+    header.addEventListener('click', () => {
+      const arrow = header.querySelector('.tree-arrow');
+      const cases = header.nextElementSibling;
+      if (arrow) arrow.classList.toggle('open');
+      if (cases) cases.classList.toggle('open');
+    });
+  });
+
+})();
+</script>
+
+<script src="js/engine/commands.js"></script>
+<script src="js/engine/playback.js"></script>
+<script src="js/engine/controlflow.js"></script>
+<script src="js/export/exporters.js"></script>
+<script src="js/ui/app.js"></script>
 
 </body>
 </html>
