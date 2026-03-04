@@ -42,11 +42,11 @@
   // Constants
   // ─────────────────────────────────────────────────────────────
 
-  const STORAGE_KEY_WORKSPACE = 'sf_workspace';
-  const STORAGE_KEY_SETTINGS  = 'sf_settings';
-  const STORAGE_KEY_TESTDATA  = 'sf_testdata';
-  const STORAGE_KEY_PROFILES  = 'sf_profiles';
-  const STORAGE_KEY_SCRIPTS   = 'sf_scripts';
+  const STORAGE_KEY_WORKSPACE = 'workspace';
+  const STORAGE_KEY_SETTINGS  = 'settings';
+  const STORAGE_KEY_TESTDATA  = 'testData';
+  const STORAGE_KEY_PROFILES  = 'profiles';
+  const STORAGE_KEY_SCRIPTS   = 'extensionScripts';
   const SAVE_DEBOUNCE_MS      = 500;
 
   const DEFAULT_SETTINGS = {
@@ -326,14 +326,14 @@
       this._dom = {
         // Toolbar
         btnRecord:      q('btn-record'),
-        btnPlay:        q('btn-play'),
+        btnPlay:        q('btn-play-tc'),
         btnPlaySuite:   q('btn-play-suite'),
         btnPlayAll:     q('btn-play-all'),
         btnPause:       q('btn-pause'),
         btnStop:        q('btn-stop'),
         btnStep:        q('btn-step'),
-        btnAddCmd:      q('btn-add-cmd'),
-        btnDeleteCmd:   q('btn-delete-cmd'),
+        btnAddCmd:      q('btn-insert-cmd'),
+        btnDeleteCmd:   q('btn-del-cmd'),
         btnUndo:        q('btn-undo'),
         btnRedo:        q('btn-redo'),
         btnSettings:    q('btn-settings'),
@@ -343,63 +343,63 @@
 
         // Tree sidebar
         treeTabs:       qs('.tree-tabs'),
-        treeContainer:  q('tree-container'),
+        treeContainer:  q('suite-tree'),
         btnAddSuite:    q('btn-add-suite'),
         btnDeleteSuite: q('btn-delete-suite'),
 
         // Command table area
         testCaseTitle:  q('test-case-title'),
-        commandTable:   q('command-table'),
-        commandTbody:   qs('#command-table tbody'),
+        commandTable:   q('cmd-table'),
+        commandTbody:   qs('#cmd-table tbody') || qs('#cmd-tbody'),
 
         // Autocomplete dropdown
-        autocompleteDropdown: q('autocomplete-dropdown'),
+        autocompleteDropdown: q('suggest-dropdown'),
 
         // Target picker
         btnPickTarget:  q('btn-pick-target'),
 
         // Detail / reference panel
-        detailCommand: q('detail-command'),
-        detailTarget:  q('detail-target'),
-        detailValue:   q('detail-value'),
+        detailCommand: q('det-command'),
+        detailTarget:  q('det-target'),
+        detailValue:   q('det-value'),
         detailComment: q('detail-comment'),
-        referencePane: q('reference-pane'),
+        referencePane: q('apanel-reference'),
 
         // Artifact tabs
-        artifactTabs:      qs('.artifact-tabs'),
-        logContainer:      q('log-container'),
-        variablesContainer: q('variables-container'),
-        screenshotsContainer: q('screenshots-container'),
-        healingContainer:  q('healing-container'),
+        artifactTabs:      qs('.artifacts-tabs'),
+        logContainer:      q('apanel-log'),
+        variablesContainer: q('apanel-variables'),
+        screenshotsContainer: q('apanel-screenshots'),
+        healingContainer:  q('apanel-healing'),
 
         // Export dialog
-        exportDialog:       q('export-dialog'),
+        exportDialog:       q('export-modal'),
         exportFormatSelect: q('export-format-select'),
         exportScopeSelect:  q('export-scope-select'),
         exportPreview:      q('export-preview'),
-        btnExportConfirm:   q('btn-export-confirm'),
-        btnExportClose:     q('btn-export-close'),
+        btnExportConfirm:   q('export-download'),
+        btnExportClose:     q('export-close'),
 
         // Settings dialog
-        settingsDialog:     q('settings-dialog'),
+        settingsDialog:     q('settings-modal'),
         settingTimeout:     q('setting-timeout'),
         settingSpeed:       q('setting-speed'),
         settingSelfHeal:    q('setting-selfheal'),
         settingScreenshot:  q('setting-screenshot'),
         settingTheme:       q('setting-theme'),
         btnSettingsSave:    q('btn-settings-save'),
-        btnSettingsClose:   q('btn-settings-close'),
+        btnSettingsClose:   q('settings-close'),
 
         // Data-driven tab
-        dataTab:            q('data-tab'),
+        dataTab:            q('panel-data'),
         btnAddData:         q('btn-add-data'),
 
         // Profiles tab
-        profilesTab:        q('profiles-tab'),
+        profilesTab:        q('panel-profiles'),
         btnAddProfile:      q('btn-add-profile'),
 
         // Extensions tab
-        extensionsTab:      q('extensions-tab'),
+        extensionsTab:      q('panel-extensions'),
         btnAddExtension:    q('btn-add-extension'),
       };
     }
@@ -883,62 +883,147 @@
      */
     copyCommands(indices) {
       if (!this.currentTestCase) return;
-      const targets = indices || this.selectedCommandIndices;
-      if (!targets.length) return;
-      this.clipboard = targets
+      const idxArray = indices || this.selectedCommandIndices;
+      this.clipboard = idxArray
         .filter(i => i >= 0 && i < this.currentTestCase.commands.length)
         .map(i => clone(this.currentTestCase.commands[i]));
       this._showStatus(`Copied ${this.clipboard.length} command(s)`);
     }
 
-    /** Paste clipboard commands after the current selection */
-    pasteCommands() {
+    /**
+     * Paste commands from clipboard.
+     * @param {number} [afterIndex] – insert after this index (-1 = append)
+     */
+    pasteCommands(afterIndex) {
       if (!this.currentTestCase || !this.clipboard.length) return;
       this._snapshotUndo();
-      const insertAt = this.selectedCommandIndex >= 0
-        ? this.selectedCommandIndex + 1
-        : this.currentTestCase.commands.length;
-      const copies = this.clipboard.map(c => clone(c));
-      this.currentTestCase.commands.splice(insertAt, 0, ...copies);
+      const insertAt = (afterIndex !== undefined && afterIndex >= 0)
+        ? afterIndex + 1
+        : (this.selectedCommandIndex >= 0 ? this.selectedCommandIndex + 1 : this.currentTestCase.commands.length);
+
+      const fresh = this.clipboard.map(c => ({ ...clone(c), breakpoint: false }));
+      this.currentTestCase.commands.splice(insertAt, 0, ...fresh);
       this._renderCommandTable();
-      this.selectCommand(insertAt);
+      // Select pasted range
+      this.selectedCommandIndices = fresh.map((_, i) => insertAt + i);
+      this.selectedCommandIndex   = insertAt;
+      this._highlightSelectedRows();
       this.saveWorkspace();
+    }
+
+    /**
+     * Patch a single table cell text without full re-render.
+     * @private
+     */
+    _patchCell(index, field, value) {
+      const tr = this._rowByIndex(index);
+      if (!tr) return;
+      const td = tr.querySelector(`[data-field="${field}"]`);
+      if (!td) return;
+      const span = td.querySelector('.cell-text');
+      if (span) span.textContent = value;
+    }
+
+    /**
+     * Apply playback state styling to a row.
+     * @param {number} index
+     * @param {'running'|'passed'|'failed'|'error'|null} state
+     */
+    _applyRowState(index, state) {
+      const tr = this._rowByIndex(index);
+      if (!tr) return;
+      // Remove all state classes first
+      Object.values(ROW_STATE).forEach(cls => tr.classList.remove(cls));
+      if (cmd => cmd.breakpoint) {
+        const cmd = this.currentTestCase && this.currentTestCase.commands[index];
+        if (cmd && cmd.breakpoint) tr.classList.add(ROW_STATE.breakpoint);
+      }
+      if (state && ROW_STATE[state]) {
+        tr.classList.add(ROW_STATE[state]);
+      }
+      this._rowStates[index] = state;
+    }
+
+    /** Scroll the command table so the given row is visible */
+    _scrollToRow(index) {
+      const tr = this._rowByIndex(index);
+      if (tr) {
+        requestAnimationFrame(() =>
+          tr.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        );
+      }
+    }
+
+    /** Return the TR element for a command index */
+    _rowByIndex(index) {
+      const tbody = this._dom.commandTbody;
+      if (!tbody) return null;
+      return tbody.querySelector(`tr[data-index="${index}"]`);
+    }
+
+    _highlightSelectedRows() {
+      const tbody = this._dom.commandTbody;
+      if (!tbody) return;
+      tbody.querySelectorAll('tr').forEach(tr => {
+        tr.classList.remove(ROW_STATE.selected);
+        const i = parseInt(tr.dataset.index, 10);
+        if (this.selectedCommandIndices.includes(i)) {
+          tr.classList.add(ROW_STATE.selected);
+        }
+      });
     }
 
     // ═══════════════════════════════════════════════════════════
     // SECTION 7 – Undo / Redo
     // ═══════════════════════════════════════════════════════════
 
-    /** Save current commands snapshot to undo stack */
+    /** Take a snapshot of the current commands array for undo */
     _snapshotUndo() {
       if (!this.currentTestCase) return;
-      this.undoStack.push(clone(this.currentTestCase.commands));
-      if (this.undoStack.length > 50) this.undoStack.shift();
+      this.undoStack.push({
+        testCaseId: this.currentTestCase.id,
+        commands:   clone(this.currentTestCase.commands),
+      });
+      if (this.undoStack.length > 100) this.undoStack.shift();
       this.redoStack = [];
-      this._updateUndoButtons();
+      this._updateUndoRedoButtons();
     }
 
     undo() {
       if (!this.currentTestCase || !this.undoStack.length) return;
-      this.redoStack.push(clone(this.currentTestCase.commands));
-      this.currentTestCase.commands = this.undoStack.pop();
+      const snapshot = this.undoStack.pop();
+      if (snapshot.testCaseId !== this.currentTestCase.id) {
+        this.undoStack.push(snapshot); // wrong test case, put it back
+        return;
+      }
+      this.redoStack.push({
+        testCaseId: this.currentTestCase.id,
+        commands:   clone(this.currentTestCase.commands),
+      });
+      this.currentTestCase.commands = snapshot.commands;
       this._renderCommandTable();
-      this._clearDetailPanel();
       this.saveWorkspace();
-      this._updateUndoButtons();
+      this._updateUndoRedoButtons();
     }
 
     redo() {
       if (!this.currentTestCase || !this.redoStack.length) return;
-      this.undoStack.push(clone(this.currentTestCase.commands));
-      this.currentTestCase.commands = this.redoStack.pop();
+      const snapshot = this.redoStack.pop();
+      if (snapshot.testCaseId !== this.currentTestCase.id) {
+        this.redoStack.push(snapshot);
+        return;
+      }
+      this.undoStack.push({
+        testCaseId: this.currentTestCase.id,
+        commands:   clone(this.currentTestCase.commands),
+      });
+      this.currentTestCase.commands = snapshot.commands;
       this._renderCommandTable();
-      this._clearDetailPanel();
       this.saveWorkspace();
-      this._updateUndoButtons();
+      this._updateUndoRedoButtons();
     }
 
-    _updateUndoButtons() {
+    _updateUndoRedoButtons() {
       if (this._dom.btnUndo) this._dom.btnUndo.disabled = !this.undoStack.length;
       if (this._dom.btnRedo) this._dom.btnRedo.disabled = !this.redoStack.length;
     }
@@ -948,76 +1033,86 @@
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Show autocomplete dropdown for the command cell.
-     * @param {HTMLElement} cell  – the <td> being edited
-     * @param {string}      query – current text
+     * Show the autocomplete dropdown for a command cell.
+     * @param {string} query – current cell text
+     * @param {HTMLElement} cellEl – the TD element being edited
      */
-    _showAutocomplete(cell, query) {
-      const CR = window.CommandRegistry;
-      if (!CR) return;
+    _showAutocomplete(query, cellEl) {
+      const registry = global.CommandRegistry;
+      if (!registry) return;
 
-      const all = CR.getAllNames ? CR.getAllNames() : Object.keys(CR.commands || {});
-      const matches = all.filter(name => fuzzyMatch(query, name)).slice(0, 12);
+      const all = registry.getCategories
+        ? Object.values(registry.getCategories()).flat()
+        : (registry._commands ? Object.values(registry._commands) : []);
 
-      if (!matches.length) {
-        this._hideAutocomplete();
-        return;
-      }
+      const results = all
+        .filter(c => fuzzyMatch(query, c.name) || fuzzyMatch(query, c.description || ''))
+        .slice(0, 20);
 
-      const dd = this._dom.autocompleteDropdown;
-      if (!dd) return;
+      const dropdown = this._dom.autocompleteDropdown;
+      if (!dropdown) return;
 
-      this._autocompleteItems       = matches;
-      this._autocompleteIndex       = -1;
-      this._autocompleteTargetCell  = cell;
-      this._autocompleteVisible     = true;
+      if (!results.length) { this._hideAutocomplete(); return; }
 
-      dd.innerHTML = matches
-        .map((m, i) => `<div class="ac-item" data-index="${i}">${esc(m)}</div>`)
-        .join('');
+      dropdown.innerHTML = results.map((c, i) => `
+        <div class="ac-item${i === this._autocompleteIndex ? ' ac-active' : ''}"
+             data-command="${esc(c.name)}"
+             data-index="${i}">
+          <span class="ac-name">${esc(c.name)}</span>
+          <span class="ac-desc">${esc((c.description || '').slice(0, 60))}</span>
+        </div>
+      `).join('');
 
-      // Position below the cell
-      const rect = cell.getBoundingClientRect();
-      dd.style.top    = `${rect.bottom + window.scrollY}px`;
-      dd.style.left   = `${rect.left   + window.scrollX}px`;
-      dd.style.width  = `${Math.max(rect.width, 180)}px`;
-      dd.style.display = 'block';
+      this._autocompleteItems = results;
+      this._autocompleteTargetCell = cellEl;
+      this._autocompleteVisible = true;
+      dropdown.style.display = 'block';
+
+      // Position dropdown below the cell
+      const rect = cellEl.getBoundingClientRect();
+      dropdown.style.top  = (rect.bottom + window.scrollY) + 'px';
+      dropdown.style.left = (rect.left   + window.scrollX) + 'px';
+      dropdown.style.width = Math.max(260, rect.width) + 'px';
     }
 
     _hideAutocomplete() {
       this._autocompleteVisible = false;
-      if (this._dom.autocompleteDropdown) {
-        this._dom.autocompleteDropdown.style.display = 'none';
+      this._autocompleteIndex   = -1;
+      this._autocompleteItems   = [];
+      const dropdown = this._dom.autocompleteDropdown;
+      if (dropdown) dropdown.style.display = 'none';
+    }
+
+    _autocompleteNavigate(direction) {
+      if (!this._autocompleteVisible) return;
+      const max = this._autocompleteItems.length - 1;
+      this._autocompleteIndex = Math.max(0, Math.min(max,
+        this._autocompleteIndex + direction));
+      // Highlight active item
+      const dropdown = this._dom.autocompleteDropdown;
+      if (!dropdown) return;
+      dropdown.querySelectorAll('.ac-item').forEach((el, i) => {
+        el.classList.toggle('ac-active', i === this._autocompleteIndex);
+        if (i === this._autocompleteIndex) {
+          el.scrollIntoView({ block: 'nearest' });
+        }
+      });
+    }
+
+    _autocompleteSelect() {
+      if (!this._autocompleteVisible) return;
+      const item = this._autocompleteItems[this._autocompleteIndex];
+      if (item && this._activeEditor) {
+        this._activeEditor.el.textContent = item.name;
+        this._activeEditor.value = item.name;
+        // Move focus to target cell
+        const tr = this._rowByIndex(this._activeEditor.rowIndex);
+        if (tr) {
+          const targetCell = tr.querySelector('[data-field="target"]');
+          if (targetCell) this._startEditing(targetCell);
+        }
       }
-    }
-
-    _autocompleteSelectByIndex(i) {
-      const items = this._dom.autocompleteDropdown &&
-                    this._dom.autocompleteDropdown.querySelectorAll('.ac-item');
-      if (!items) return;
-      items.forEach((el, idx) => el.classList.toggle('ac-active', idx === i));
-    }
-
-    /**
-     * Commit an autocomplete selection into the command field.
-     * @param {number} index
-     */
-    _autocompleteCommit(index) {
-      if (index < 0 || index >= this._autocompleteItems.length) return;
-      const value = this._autocompleteItems[index];
-      const cell  = this._autocompleteTargetCell;
-      if (!cell) return;
-
-      const rowIndex = parseInt(cell.dataset.index, 10);
-      this.updateCommand(rowIndex, 'command', value);
       this._hideAutocomplete();
-
-      // Move focus to target cell
-      const tr = this._rowByIndex(rowIndex);
-      if (tr) {
-        const targetCell = tr.querySelector('[data-field="target"]');
-        if (targetCell) this._openEditor(targetCell);
-      }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1025,529 +1120,894 @@
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Activate the element-picker in the active tab.
-     * @param {number} [commandIndex]  – if given, fills that row's target.
+     * Enter element-picker mode for a target cell.
+     * @param {number} commandIndex
      */
-    async activatePicker(commandIndex) {
+    async startTargetPicker(commandIndex) {
       if (this._pickerActive) return;
       this._pickerActive = true;
-      if (this._dom.btnPickTarget) {
-        this._dom.btnPickTarget.classList.add('active');
-      }
+      this._pickerCommandIndex = commandIndex;
+      this._showStatus('Click an element on the page to pick its locator…', 'info');
 
-      const response = await sendToBackground({
-        type:         'START_PICKER',
-        commandIndex: commandIndex !== undefined ? commandIndex : this.selectedCommandIndex,
-      });
-
-      if (!response.ok) {
+      // Tell the background to activate picker in the active tab
+      const resp = await sendToBackground({ type: 'SF_START_PICKER' });
+      if (!resp.ok) {
         this._pickerActive = false;
-        this._showStatus('Picker failed: ' + (response.error || 'unknown'), 'error');
-        if (this._dom.btnPickTarget) this._dom.btnPickTarget.classList.remove('active');
+        this._showStatus('Could not activate element picker', 'error');
       }
     }
 
-    /** Called when background sends back PICKER_RESULT */
-    _onPickerResult(data) {
+    /**
+     * Called when the content script sends locator suggestions.
+     * @param {Array<string>} locators
+     */
+    _onLocatorSuggestions(locators) {
       this._pickerActive = false;
-      if (this._dom.btnPickTarget) this._dom.btnPickTarget.classList.remove('active');
-
-      if (data.target && data.commandIndex >= 0) {
-        this.updateCommand(data.commandIndex, 'target', data.target);
-        this.selectCommand(data.commandIndex);
+      if (!locators || !locators.length) {
+        this._showStatus('No locators found for element', 'warn');
+        return;
       }
+      this._showLocatorDropdown(locators, this._pickerCommandIndex);
+    }
+
+    /**
+     * Show a dropdown of locator alternatives.
+     * @param {string[]} locators
+     * @param {number} commandIndex
+     */
+    _showLocatorDropdown(locators, commandIndex) {
+      // Reuse the autocomplete dropdown for locator selection
+      const dropdown = this._dom.autocompleteDropdown;
+      if (!dropdown) return;
+
+      dropdown.innerHTML = '<div class="ac-header">Select a locator:</div>' +
+        locators.map((loc, i) => `
+          <div class="ac-item" data-locator="${esc(loc)}" data-cmd-index="${commandIndex}">
+            <span class="ac-name">${esc(loc)}</span>
+          </div>
+        `).join('');
+
+      dropdown.style.display = 'block';
+      dropdown.style.top  = '50%';
+      dropdown.style.left = '20px';
+      dropdown.style.width = '340px';
+
+      // Click handler for locator items
+      dropdown.querySelectorAll('[data-locator]').forEach(el => {
+        el.addEventListener('click', () => {
+          const locator = el.dataset.locator;
+          const idx     = parseInt(el.dataset.cmdIndex, 10);
+          this.updateCommand(idx, 'target', locator);
+          this._hideAutocomplete();
+          this._showStatus('Locator applied');
+        });
+      });
     }
 
     // ═══════════════════════════════════════════════════════════
     // SECTION 10 – Recording Integration
     // ═══════════════════════════════════════════════════════════
 
-    /** Toggle recording on / off */
-    async toggleRecording() {
+    async startRecording() {
       if (!this.currentTestCase) {
-        this._showStatus('Open a test case before recording.', 'warn');
+        // Prompt to create a test case if none open
+        const suiteName = 'Recorded Suite';
+        const tcName    = 'Recorded Test';
+        let suite = this.workspace.suites.find(s => s.name === suiteName);
+        if (!suite) suite = this.addSuite(suiteName);
+        this.addTestCase(suite.id, tcName);
+      }
+
+      const resp = await sendToBackground({ type: 'SF_START_RECORDING' });
+      if (resp && resp.ok === false) {
+        this._showStatus('Recording could not start: ' + (resp.error || 'unknown error'), 'error');
         return;
       }
-
-      if (this.isRecording) {
-        await this._stopRecording();
-      } else {
-        await this._startRecording();
-      }
+      this.isRecording = true;
+      this._updateToolbarState();
+      this._showStatus('Recording…', 'recording');
+      this._setBadge('REC', '#e53e3e');
     }
 
-    async _startRecording() {
-      const response = await sendToBackground({ type: 'START_RECORDING' });
-      if (response.ok) {
-        this.isRecording = true;
-        this._updateToolbarState();
-        this._showStatus('Recording…', 'recording');
-      } else {
-        this._showStatus('Could not start recording: ' + (response.error || ''), 'error');
-      }
-    }
-
-    async _stopRecording() {
-      const response = await sendToBackground({ type: 'STOP_RECORDING' });
+    async stopRecording() {
+      await sendToBackground({ type: 'SF_STOP_RECORDING' });
       this.isRecording = false;
       this._updateToolbarState();
-      this._showStatus(response.ok ? 'Recording stopped.' : 'Stop failed.');
+      this._showStatus('Recording stopped');
+      this._clearBadge();
     }
 
-    /**
-     * Called when background pushes a recorded command.
-     * @param {{ command: string, target: string, value: string }} cmd
-     */
-    _onRecordedCommand(cmd) {
+    /** Called when a command arrives from the content script recorder */
+    onCommandRecorded(cmd) {
       if (!this.currentTestCase) return;
-      const normalised = normCmd(cmd);
-      this.currentTestCase.commands.push(normalised);
-      this._renderCommandTable();
+      const normalized = normCmd(cmd);
+      this.currentTestCase.commands.push(normalized);
       this.saveWorkspace();
-      // Scroll to bottom
-      if (this._dom.commandTbody) {
-        const lastRow = this._dom.commandTbody.lastElementChild;
-        if (lastRow) lastRow.scrollIntoView({ block: 'nearest' });
-      }
+
+      // Append row efficiently (full render only if tbody is empty)
+      const tbody = this._dom.commandTbody;
+      if (!tbody) return;
+
+      const emptyRow = tbody.querySelector('.empty-row');
+      if (emptyRow) emptyRow.remove();
+
+      const index = this.currentTestCase.commands.length - 1;
+      const tr    = this._buildCommandRow(normalized, index);
+      tbody.appendChild(tr);
+      this._scrollToRow(index);
     }
 
     // ═══════════════════════════════════════════════════════════
     // SECTION 11 – Playback Integration
     // ═══════════════════════════════════════════════════════════
 
-    /** Play the current test case */
-    async playTestCase() {
-      if (!this.currentTestCase) {
-        this._showStatus('No test case selected.', 'warn');
-        return;
-      }
-      await this._runPlayback('testCase', this.currentSuite, this.currentTestCase);
-    }
-
-    /** Play the current suite */
-    async playSuite() {
-      if (!this.currentSuite) {
-        this._showStatus('No suite selected.', 'warn');
-        return;
-      }
-      await this._runPlayback('suite', this.currentSuite);
-    }
-
-    /** Play all suites */
-    async playAll() {
-      await this._runPlayback('all');
-    }
-
-    /** Step (execute one command then pause) */
-    async stepCommand() {
-      if (this._playbackEngine) {
-        this._playbackEngine.step();
-      }
-    }
-
-    /** Pause running playback */
-    pausePlayback() {
-      if (this._playbackEngine) this._playbackEngine.pause();
-    }
-
-    /** Stop running playback */
-    stopPlayback() {
-      if (this._playbackEngine) this._playbackEngine.stop();
+    /**
+     * Get the ID of the active Chrome tab, used for playback dispatch.
+     * @private
+     * @returns {Promise<number|null>}
+     */
+    async _getActiveTabId() {
+      return new Promise(resolve => {
+        try {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            resolve(tabs && tabs[0] ? tabs[0].id : null);
+          });
+        } catch (e) { resolve(null); }
+      });
     }
 
     /**
-     * Internal: instantiate PlaybackEngine and run.
+     * Create and configure a PlaybackEngine with all event bindings.
      * @private
      */
-    async _runPlayback(mode, suite, testCase) {
-      if (this.isPlaying) return;
+    _createEngine() {
+      const engine = new global.PlaybackEngine({
+        speed:   this._speedMs(),
+        timeout: this.settings.defaultTimeout,
+      });
 
-      const PE = window.PlaybackEngine;
-      if (!PE) {
-        this._showStatus('PlaybackEngine not loaded.', 'error');
+      // Attach control flow
+      if (global.ControlFlowEngine) {
+        engine.attachControlFlow(new global.ControlFlowEngine());
+      }
+
+      // Inject active profile variables
+      this._injectProfileVariables(engine);
+
+      // ── Event bindings ──
+
+      engine.on('commandStart', ({ index }) => {
+        // Clear previous running row
+        if (this._lastRunningIndex !== undefined) {
+          const prev = this._rowStates[this._lastRunningIndex];
+          if (prev === 'running') this._applyRowState(this._lastRunningIndex, null);
+        }
+        this._applyRowState(index, 'running');
+        this._lastRunningIndex = index;
+        this._scrollToRow(index);
+      });
+
+      engine.on('commandComplete', ({ index, status }) => {
+        const state = status === 'passed' ? 'passed'
+          : status === 'failed' ? 'failed'
+          : status === 'error'  ? 'error'
+          : null;
+        this._applyRowState(index, state);
+      });
+
+      engine.on('log', (entry) => {
+        this.appendLog(entry);
+      });
+
+      engine.on('variableUpdated', ({ name, value }) => {
+        this.updateVariables(engine.getAllVariables());
+      });
+
+      engine.on('healingSuggestion', (suggestion) => {
+        this.addHealingSuggestion({
+          ...suggestion,
+          testCaseId: this.currentTestCase && this.currentTestCase.id,
+        });
+      });
+
+      engine.on('paused', ({ index }) => {
+        this._applyRowState(index, 'running');
+        this._updatePlayPauseButtons(true /* paused */);
+        this._showStatus('Paused at step ' + (index + 1));
+      });
+
+      engine.on('testCaseComplete', ({ name, passed, failed, errors }) => {
+        const ok = failed === 0 && errors === 0;
+        if (this.currentTestCase) {
+          this._resultBadges[this.currentTestCase.id] = ok ? 'passed' : 'failed';
+        }
+        this.renderTree();
+        this._showStatus(`${name}: ${ok ? 'PASSED' : 'FAILED'} (${passed}p/${failed}f/${errors}e)`);
+      });
+
+      engine.on('testSuiteComplete', ({ name, results }) => {
+        const ok = results.failed === 0;
+        this._showStatus(`Suite "${name}" complete — ${results.passed}/${results.total} passed`);
+        this.appendLog({
+          level: ok ? 'info' : 'error',
+          message: `Suite "${name}" finished: ${results.passed} passed, ${results.failed} failed`,
+          timestamp: Date.now(),
+        });
+      });
+
+      engine.on('stopped', () => {
+        this._onPlaybackFinished();
+      });
+
+      return engine;
+    }
+
+    _speedMs() {
+      const presets = { SLOW: 2000, MEDIUM: 1000, FAST: 300, FASTEST: 0 };
+      const s = (this._dom.speedSelect && this._dom.speedSelect.value)
+        || this.settings.speed;
+      return presets[s] !== undefined ? presets[s] : 1000;
+    }
+
+    /** Play the current test case */
+    async playTestCase() {
+      if (!this.currentTestCase || this.isPlaying) return;
+
+      const tabId = await this._getActiveTabId();
+      if (!tabId) {
+        this._showStatus('No active tab found', 'error');
         return;
       }
 
       this.isPlaying = true;
-      this._updateToolbarState();
-      this._clearArtifacts();
-      this._rowStates = {};
-
-      // Resolve test data binding
-      const activeProfile  = this.profiles.find(p => p.active) || null;
-      const testDataSource = this._resolveTestData();
-
-      this._playbackEngine = new PE({
-        mode,
-        suite:          suite        || null,
-        testCase:       testCase     || null,
-        workspace:      this.workspace,
-        settings:       this.settings,
-        profile:        activeProfile,
-        testDataSource: testDataSource,
-
-        onCommandStart:  (idx)       => this._onCommandStart(idx),
-        onCommandResult: (idx, res)  => this._onCommandResult(idx, res),
-        onTestCaseStart: (suite, tc) => this._onTestCaseStart(suite, tc),
-        onTestCaseEnd:   (suite, tc, result) => this._onTestCaseEnd(suite, tc, result),
-        onLog:           (msg, level) => this._appendLog(msg, level),
-        onVariable:      (name, val) => this._appendVariable(name, val),
-        onScreenshot:    (dataUrl)   => this._appendScreenshot(dataUrl),
-        onHealingSuggestion: (data)  => this._appendHealingSuggestion(data),
-        onFinish:        (summary)   => this._onPlaybackFinish(summary),
-      });
-
-      try {
-        await this._playbackEngine.run();
-      } catch (e) {
-        this._showStatus('Playback error: ' + e.message, 'error');
-        console.error('[SeleniumForge] Playback error:', e);
-        this._onPlaybackFinish({ ok: false, error: e.message });
-      }
-    }
-
-    _onCommandStart(index) {
-      // Clear previous 'running' state
-      Object.keys(this._rowStates).forEach(i => {
-        if (this._rowStates[i] === 'running') delete this._rowStates[i];
-      });
-      this._rowStates[index] = 'running';
-      this._applyRowState(index, 'running');
-
-      // Keep row in view
-      const tr = this._rowByIndex(index);
-      if (tr) tr.scrollIntoView({ block: 'nearest' });
-    }
-
-    _onCommandResult(index, result) {
-      const state = result.ok ? 'passed' : (result.error ? 'error' : 'failed');
-      this._rowStates[index] = state;
-      this._applyRowState(index, state);
-    }
-
-    _onTestCaseStart(suite, tc) {
-      if (this.currentSuite && this.currentSuite.id !== suite.id) {
-        this.openTestCase(suite, tc);
-      } else if (this.currentTestCase && this.currentTestCase.id !== tc.id) {
-        this.openTestCase(suite, tc);
-      }
       this._rowStates = {};
       this._renderCommandTable();
-      this._showStatus(`Running: ${tc.name}`);
-    }
-
-    _onTestCaseEnd(suite, tc, result) {
-      this._resultBadges[tc.id] = result.ok ? 'passed' : 'failed';
-      this.renderTree();
-    }
-
-    _onPlaybackFinish(summary) {
-      this.isPlaying        = false;
-      this._playbackEngine  = null;
       this._updateToolbarState();
+      this.clearLog();
 
-      const ok  = summary && summary.ok !== false;
-      const msg = ok
-        ? `Playback complete. Passed: ${summary.passed || 0}, Failed: ${summary.failed || 0}`
-        : `Playback stopped. ${summary.error || ''}`;
-      this._showStatus(msg, ok ? 'success' : 'error');
+      this._playbackEngine = this._createEngine();
+
+      // Sync breakpoints
+      const bpSet = new Set(
+        this.currentTestCase.commands
+          .map((c, i) => c.breakpoint ? i : -1)
+          .filter(i => i >= 0)
+      );
+      this._playbackEngine.setBreakpoints(bpSet);
+
+      try {
+        await this._playbackEngine.runTestCase(this.currentTestCase, tabId);
+      } catch (e) {
+        console.error('[SeleniumForge] Playback error:', e);
+        this.appendLog({ level: 'error', message: 'Playback error: ' + e.message, timestamp: Date.now() });
+      } finally {
+        this._onPlaybackFinished();
+      }
     }
 
-    _applyRowState(index, state) {
-      const tr = this._rowByIndex(index);
-      if (!tr) return;
-      // Remove all state classes first
-      Object.values(ROW_STATE).forEach(cls => tr.classList.remove(cls));
-      // Re-add sticky classes
-      const cmd = this.currentTestCase && this.currentTestCase.commands[index];
-      if (cmd && cmd.breakpoint) tr.classList.add(ROW_STATE.breakpoint);
-      if (this.selectedCommandIndices.includes(index)) tr.classList.add(ROW_STATE.selected);
-      if (state && ROW_STATE[state]) tr.classList.add(ROW_STATE[state]);
+    /** Play the entire current suite */
+    async playTestSuite() {
+      if (!this.currentSuite || this.isPlaying) return;
+
+      const tabId = await this._getActiveTabId();
+      if (!tabId) { this._showStatus('No active tab', 'error'); return; }
+
+      this.isPlaying = true;
+      this._updateToolbarState();
+      this.clearLog();
+      this._playbackEngine = this._createEngine();
+
+      try {
+        await this._playbackEngine.runTestSuite(this.currentSuite, tabId);
+      } catch (e) {
+        console.error('[SeleniumForge] Suite playback error:', e);
+      } finally {
+        this._onPlaybackFinished();
+      }
+    }
+
+    /** Play all suites */
+    async playAll() {
+      if (this.isPlaying) return;
+
+      const tabId = await this._getActiveTabId();
+      if (!tabId) { this._showStatus('No active tab', 'error'); return; }
+
+      this.isPlaying = true;
+      this._updateToolbarState();
+      this.clearLog();
+      this._playbackEngine = this._createEngine();
+
+      try {
+        await this._playbackEngine.runAllSuites(this.workspace.suites, tabId);
+      } catch (e) {
+        console.error('[SeleniumForge] Full run error:', e);
+      } finally {
+        this._onPlaybackFinished();
+      }
+    }
+
+    pauseExecution() {
+      if (this._playbackEngine) this._playbackEngine.pause();
+      this._updatePlayPauseButtons(true);
+    }
+
+    resumeExecution() {
+      if (this._playbackEngine) this._playbackEngine.resume();
+      this._updatePlayPauseButtons(false);
+      this._showStatus('Running…');
+    }
+
+    stopExecution() {
+      if (this._playbackEngine) this._playbackEngine.stop();
+      this._onPlaybackFinished();
+    }
+
+    /**
+     * Execute a single command at a given index immediately.
+     * @param {number} index
+     */
+    async executeSingleCommand(index) {
+      if (!this.currentTestCase || this.isPlaying) return;
+      const cmd = this.currentTestCase.commands[index];
+      if (!cmd) return;
+
+      const tabId = await this._getActiveTabId();
+      if (!tabId) return;
+
+      const engine = this._createEngine();
+      this._applyRowState(index, 'running');
+
+      try {
+        const result = await engine.runSingleCommand(cmd, tabId);
+        const state  = result.status === 'passed' ? 'passed'
+          : result.status === 'failed' ? 'failed'
+          : 'error';
+        this._applyRowState(index, state);
+        this.appendLog({
+          level:   state === 'passed' ? 'info' : 'error',
+          message: `[Step ${index + 1}] ${cmd.command}: ${result.message || state}`,
+          timestamp: Date.now(),
+        });
+      } catch (e) {
+        this._applyRowState(index, 'error');
+      }
+    }
+
+    _onPlaybackFinished() {
+      this.isPlaying   = false;
+      this._playbackEngine = null;
+      this._lastRunningIndex = undefined;
+      this._updateToolbarState();
+      this._showStatus('Ready');
+    }
+
+    _updatePlayPauseButtons(paused) {
+      if (this._dom.btnPause)  this._dom.btnPause.style.display  = paused ? 'none'  : '';
+      if (this._dom.btnPlay)   this._dom.btnPlay.style.display   = '';
+      const resumeBtn = document.getElementById('btn-resume');
+      if (resumeBtn) resumeBtn.style.display = paused ? '' : 'none';
+    }
+
+    _injectProfileVariables(engine) {
+      const activeProfile = this.profiles.find(p => p.active);
+      if (activeProfile && activeProfile.variables) {
+        Object.entries(activeProfile.variables).forEach(([k, v]) => {
+          engine.setVariable(k, v);
+        });
+      }
     }
 
     // ═══════════════════════════════════════════════════════════
     // SECTION 12 – Data-Driven Testing UI
     // ═══════════════════════════════════════════════════════════
 
-    _renderDataTab() {
-      const container = this._dom.dataTab;
-      if (!container) return;
-
-      if (!this.testData.length) {
-        container.innerHTML = '<p class="empty-msg">No data sets. Click <strong>+ Add</strong>.</p>';
-        return;
-      }
-
-      container.innerHTML = this.testData.map((ds, di) => `
-        <div class="data-set" data-id="${ds.id}">
-          <div class="data-set-header">
-            <span class="data-set-name">${esc(ds.name)}</span>
-            <button class="btn-ds-delete" data-id="${ds.id}" title="Delete">✕</button>
-          </div>
-          <table class="data-table">
-            <thead><tr>${(ds.rows[0] || []).map((h, i) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
-            <tbody>${ds.rows.slice(1).map(row =>
-              `<tr>${row.map(cell => `<td>${esc(cell)}</td>`).join('')}</tr>`
-            ).join('')}</tbody>
-          </table>
-        </div>
-      `).join('');
-
-      container.querySelectorAll('.btn-ds-delete').forEach(btn => {
-        btn.addEventListener('click', () => this._deleteDataSet(btn.dataset.id));
-      });
-    }
-
-    _deleteDataSet(id) {
-      this.testData = this.testData.filter(ds => ds.id !== id);
-      this._saveTestData();
-      this._renderDataTab();
-    }
-
-    /** Open a file picker to import CSV as a data set */
-    importTestDataCSV() {
+    /** Show file picker to load CSV or JSON test data */
+    loadTestData() {
       const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.csv,text/csv';
-      input.onchange = async (e) => {
+      input.type   = 'file';
+      input.accept = '.csv,.json';
+      input.onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const text = await file.text();
-        const rows = text.trim().split('\n').map(line =>
-          line.split(',').map(cell => cell.trim().replace(/^"|"$/g, ''))
-        );
-        const ds = { id: uid(), name: file.name.replace(/\.csv$/i, ''), type: 'csv', rows };
-        this.testData.push(ds);
-        this._saveTestData();
-        this._renderDataTab();
-        this._showStatus(`Imported: ${ds.name}`);
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const text = ev.target.result;
+          const ext  = file.name.split('.').pop().toLowerCase();
+          let rows;
+          try {
+            if (ext === 'json') {
+              rows = JSON.parse(text);
+              if (!Array.isArray(rows)) rows = [rows];
+            } else {
+              rows = this._parseCsv(text);
+            }
+          } catch (err) {
+            this._showStatus('Data parse error: ' + err.message, 'error');
+            return;
+          }
+          const entry = { id: uid(), name: file.name, type: ext, rows };
+          this.testData.push(entry);
+          this._saveTestData();
+          this._renderDataTab();
+          this._showStatus(`Loaded data: ${file.name} (${rows.length} rows)`);
+        };
+        reader.readAsText(file);
       };
       input.click();
     }
 
-    _resolveTestData() {
-      const bound = this.currentTestCase && this.currentTestCase.testDataId;
-      if (!bound) return null;
-      return this.testData.find(ds => ds.id === bound) || null;
+    /** Remove a test data set by id */
+    removeTestData(id) {
+      this.testData = this.testData.filter(d => d.id !== id);
+      this._saveTestData();
+      this._renderDataTab();
+    }
+
+    /**
+     * Insert loadVars/endLoadVars commands in the current test case for a data set.
+     */
+    useDataInTestCase(dataId, testCaseId) {
+      const data = this.testData.find(d => d.id === dataId);
+      if (!data) return;
+      const tc = testCaseId
+        ? this._findTestCaseAnywhere(testCaseId)
+        : this.currentTestCase;
+      if (!tc) return;
+      this._snapshotUndo();
+      tc.commands.unshift(normCmd({ command: 'loadVars', target: data.name, value: '' }));
+      tc.commands.push(normCmd({ command: 'endLoadVars', target: data.name, value: '' }));
+      if (tc === this.currentTestCase) this._renderCommandTable();
+      this.saveWorkspace();
+    }
+
+    /** Show a modal preview of a data set */
+    previewData(dataId) {
+      const data = this.testData.find(d => d.id === dataId);
+      if (!data || !data.rows.length) return;
+
+      const headers = data.type === 'json'
+        ? Object.keys(data.rows[0] || {})
+        : Object.keys(data.rows[0] || {});
+
+      let html = '<table class="data-preview-table"><thead><tr>'
+        + headers.map(h => `<th>${esc(h)}</th>`).join('')
+        + '</tr></thead><tbody>'
+        + data.rows.slice(0, 50).map(row =>
+            '<tr>' + headers.map(h => `<td>${esc(row[h] || '')}</td>`).join('') + '</tr>'
+          ).join('')
+        + '</tbody></table>';
+
+      this._showModal('Data Preview: ' + data.name, html);
+    }
+
+    /** Minimal CSV parser → array of objects */
+    _parseCsv(text) {
+      const lines = text.trim().split('\n');
+      if (!lines.length) return [];
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      return lines.slice(1).map(line => {
+        const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        const row  = {};
+        headers.forEach((h, i) => { row[h] = vals[i] || ''; });
+        return row;
+      });
+    }
+
+    _renderDataTab() {
+      const container = this._dom.dataTab;
+      if (!container) return;
+      if (!this.testData.length) {
+        container.innerHTML = '<p class="empty-msg">No test data loaded. Click <strong>+ Add Data</strong> to load a CSV or JSON file.</p>';
+        return;
+      }
+      container.innerHTML = this.testData.map(d => `
+        <div class="data-entry" data-id="${d.id}">
+          <span class="data-icon">${d.type === 'json' ? '{ }' : 'CSV'}</span>
+          <span class="data-name">${esc(d.name)}</span>
+          <span class="data-count">${d.rows.length} rows</span>
+          <button class="btn-sm" data-action="preview" data-id="${d.id}">Preview</button>
+          <button class="btn-sm" data-action="use"     data-id="${d.id}">Use</button>
+          <button class="btn-sm btn-danger" data-action="remove" data-id="${d.id}">✕</button>
+        </div>
+      `).join('');
     }
 
     // ═══════════════════════════════════════════════════════════
     // SECTION 13 – Profiles (Global Variables)
     // ═══════════════════════════════════════════════════════════
 
-    _renderProfilesTab() {
-      const container = this._dom.profilesTab;
-      if (!container) return;
-
-      if (!this.profiles.length) {
-        container.innerHTML = '<p class="empty-msg">No profiles. Click <strong>+ Add</strong>.</p>';
-        return;
-      }
-
-      container.innerHTML = this.profiles.map((p, pi) => `
-        <div class="profile ${p.active ? 'profile-active' : ''}" data-id="${p.id}">
-          <div class="profile-header">
-            <label class="profile-radio">
-              <input type="radio" name="active-profile" value="${p.id}" ${p.active ? 'checked' : ''}>
-              <span>${esc(p.name)}</span>
-            </label>
-            <button class="btn-profile-delete" data-id="${p.id}" title="Delete">✕</button>
-          </div>
-          <div class="profile-vars">
-            ${Object.entries(p.variables || {}).map(([k, v]) =>
-              `<div class="profile-var"><span class="var-key">${esc(k)}</span><span class="var-val">${esc(String(v))}</span></div>`
-            ).join('')}
-          </div>
-        </div>
-      `).join('');
-
-      container.querySelectorAll('input[name="active-profile"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-          this.profiles.forEach(p => p.active = (p.id === radio.value));
-          this._saveProfiles();
-          this._renderProfilesTab();
-        });
-      });
-
-      container.querySelectorAll('.btn-profile-delete').forEach(btn => {
-        btn.addEventListener('click', () => {
-          this.profiles = this.profiles.filter(p => p.id !== btn.dataset.id);
-          this._saveProfiles();
-          this._renderProfilesTab();
-        });
-      });
-    }
-
-    addProfile(name, variables) {
-      const profile = { id: uid(), name: name || 'Profile 1', variables: variables || {}, active: false };
+    /**
+     * Add a new variable profile.
+     * @param {string} name
+     * @returns {Object} the new profile
+     */
+    addProfile(name) {
+      const profile = {
+        id: uid(),
+        name: name || 'Profile ' + (this.profiles.length + 1),
+        variables: {},
+        active: this.profiles.length === 0,
+      };
       this.profiles.push(profile);
       this._saveProfiles();
       this._renderProfilesTab();
+      return profile;
+    }
+
+    deleteProfile(id) {
+      this.profiles = this.profiles.filter(p => p.id !== id);
+      this._saveProfiles();
+      this._renderProfilesTab();
+    }
+
+    addVariable(profileId, name, value) {
+      const p = this.profiles.find(p => p.id === profileId);
+      if (!p) return;
+      p.variables[name] = value;
+      this._saveProfiles();
+      this._renderProfilesTab();
+    }
+
+    removeVariable(profileId, name) {
+      const p = this.profiles.find(p => p.id === profileId);
+      if (!p) return;
+      delete p.variables[name];
+      this._saveProfiles();
+      this._renderProfilesTab();
+    }
+
+    setActiveProfile(id) {
+      this.profiles.forEach(p => { p.active = p.id === id; });
+      this._saveProfiles();
+      this._renderProfilesTab();
+    }
+
+    _renderProfilesTab() {
+      const container = this._dom.profilesTab;
+      if (!container) return;
+      if (!this.profiles.length) {
+        container.innerHTML = '<p class="empty-msg">No profiles. Click <strong>+ Add Profile</strong>.</p>';
+        return;
+      }
+      container.innerHTML = this.profiles.map(p => `
+        <div class="profile-entry${p.active ? ' active' : ''}" data-profile-id="${p.id}">
+          <div class="profile-header">
+            <span class="profile-name">${esc(p.name)}</span>
+            <button class="btn-sm" data-action="set-active" data-id="${p.id}">${p.active ? '★ Active' : 'Set Active'}</button>
+            <button class="btn-sm" data-action="add-var" data-id="${p.id}">+ Var</button>
+            <button class="btn-sm btn-danger" data-action="delete-profile" data-id="${p.id}">✕</button>
+          </div>
+          <table class="profile-vars-table">
+            ${Object.entries(p.variables).map(([k, v]) => `
+              <tr>
+                <td class="var-name">${esc(k)}</td>
+                <td class="var-value">${esc(v)}</td>
+                <td><button class="btn-sm btn-danger" data-action="remove-var"
+                    data-profile-id="${p.id}" data-var-name="${esc(k)}">✕</button></td>
+              </tr>
+            `).join('')}
+          </table>
+        </div>
+      `).join('');
+    }
+
+    _renderExtensionsTab() {
+      const container = this._dom.extensionsTab;
+      if (!container) return;
+      if (!this.extensionScripts.length) {
+        container.innerHTML = '<p class="empty-msg">No extension scripts. Click <strong>+ Add</strong>.</p>';
+        return;
+      }
+      container.innerHTML = this.extensionScripts.map(s => `
+        <div class="ext-entry" data-id="${s.id}">
+          <span class="ext-name">${esc(s.name)}</span>
+          <button class="btn-sm btn-danger" data-action="delete-ext" data-id="${s.id}">✕</button>
+        </div>
+      `).join('');
     }
 
     // ═══════════════════════════════════════════════════════════
     // SECTION 14 – Export UI
     // ═══════════════════════════════════════════════════════════
 
-    openExportDialog() {
-      const dlg = this._dom.exportDialog;
-      if (!dlg) return;
-      this._refreshExportPreview();
-      dlg.style.display = 'flex';
+    /** Open the export dialog */
+    showExportDialog() {
+      const dialog = this._dom.exportDialog;
+      if (!dialog) return;
+      dialog.style.display = 'flex';
+      this._populateExportFormats();
+      this._updateExportPreview();
+    }
+
+    _populateExportFormats() {
+      const select = this._dom.exportFormatSelect;
+      if (!select || !global.ExportManager) return;
+      const formats = global.ExportManager.getFormats
+        ? global.ExportManager.getFormats()
+        : [
+            { id: 'java-testng',   label: 'Java + TestNG' },
+            { id: 'java-junit5',   label: 'Java + JUnit 5' },
+            { id: 'python-pytest', label: 'Python + pytest' },
+            { id: 'csharp-nunit', label: 'C# + NUnit' },
+            { id: 'js-mocha',     label: 'JavaScript + Mocha' },
+            { id: 'cucumber',     label: 'Cucumber / Gherkin' },
+            { id: 'robot',        label: 'Robot Framework' },
+            { id: 'selenese',     label: 'Selenese HTML' },
+            { id: 'json',         label: 'JSON (reimport)' },
+          ];
+      select.innerHTML = formats.map(f =>
+        `<option value="${f.id}">${esc(f.label)}</option>`
+      ).join('');
+    }
+
+    /** Update the code preview panel */
+    _updateExportPreview() {
+      const preview  = this._dom.exportPreview;
+      const format   = this._dom.exportFormatSelect && this._dom.exportFormatSelect.value;
+      const scope    = this._dom.exportScopeSelect  && this._dom.exportScopeSelect.value;
+      if (!preview || !format || !global.ExportManager) return;
+
+      try {
+        let result;
+        if (scope === 'testcase' && this.currentTestCase) {
+          result = global.ExportManager.export(this.currentTestCase, format);
+        } else if (scope === 'suite' && this.currentSuite) {
+          result = global.ExportManager.exportSuite(this.currentSuite, format);
+        } else {
+          result = global.ExportManager.exportProject(this.workspace.suites, format);
+        }
+
+        if (typeof result === 'string') {
+          preview.textContent = result;
+        } else if (result && result.files) {
+          // Multi-file: show all files concatenated with separators
+          preview.textContent = result.files
+            .map(f => `// ── ${f.path} ──\n${f.content}`)
+            .join('\n\n');
+        }
+      } catch (e) {
+        preview.textContent = '// Export error: ' + e.message;
+      }
+    }
+
+    /**
+     * Execute the export — generate code and trigger download(s).
+     */
+    executeExport() {
+      const format = this._dom.exportFormatSelect && this._dom.exportFormatSelect.value;
+      const scope  = this._dom.exportScopeSelect  && this._dom.exportScopeSelect.value;
+      if (!format || !global.ExportManager) return;
+
+      let result;
+      let baseName;
+
+      try {
+        if (scope === 'testcase' && this.currentTestCase) {
+          result   = global.ExportManager.exportAsFiles(this.currentTestCase, format);
+          baseName = this.currentTestCase.name;
+        } else if (scope === 'suite' && this.currentSuite) {
+          result   = global.ExportManager.exportSuite(this.currentSuite, format);
+          baseName = this.currentSuite.name;
+          if (typeof result === 'string') {
+            result = { files: [{ path: baseName + '.' + this._extForFormat(format), content: result }] };
+          }
+        } else {
+          result   = global.ExportManager.exportProject(this.workspace.suites, format);
+          baseName = 'seleniumforge-project';
+        }
+      } catch (e) {
+        this._showStatus('Export error: ' + e.message, 'error');
+        return;
+      }
+
+      if (!result || !result.files) {
+        this._showStatus('Export produced no files', 'error');
+        return;
+      }
+
+      if (result.files.length === 1) {
+        this._downloadText(result.files[0].content, result.files[0].path, 'text/plain');
+      } else {
+        // Multiple files: download each
+        result.files.forEach(file => {
+          this._downloadText(file.content, file.path, 'text/plain');
+        });
+      }
+
+      this._showStatus(`Exported ${result.files.length} file(s)`);
+      this._closeExportDialog();
+    }
+
+    _extForFormat(format) {
+      const map = {
+        'java-testng':   'java',
+        'java-junit5':   'java',
+        'python-pytest': 'py',
+        'csharp-nunit':  'cs',
+        'js-mocha':      'js',
+        'cucumber':      'feature',
+        'robot':         'robot',
+        'selenese':      'html',
+        'json':          'json',
+      };
+      return map[format] || 'txt';
     }
 
     _closeExportDialog() {
       if (this._dom.exportDialog) this._dom.exportDialog.style.display = 'none';
     }
 
-    _refreshExportPreview() {
-      const format = this._dom.exportFormatSelect && this._dom.exportFormatSelect.value;
-      const scope  = this._dom.exportScopeSelect  && this._dom.exportScopeSelect.value;
-      const EM = window.ExportManager;
-      if (!EM) {
-        if (this._dom.exportPreview) this._dom.exportPreview.textContent = 'ExportManager not loaded.';
-        return;
-      }
-
-      let target;
-      if (scope === 'testcase') target = this.currentTestCase;
-      else if (scope === 'suite') target = this.currentSuite;
-      else target = this.workspace;
-
-      try {
-        const preview = EM.export(format, target, { preview: true });
-        if (this._dom.exportPreview) this._dom.exportPreview.textContent = preview;
-      } catch (e) {
-        if (this._dom.exportPreview) this._dom.exportPreview.textContent = 'Error: ' + e.message;
-      }
-    }
-
-    _doExport() {
-      const format = this._dom.exportFormatSelect && this._dom.exportFormatSelect.value;
-      const scope  = this._dom.exportScopeSelect  && this._dom.exportScopeSelect.value;
-      const EM = window.ExportManager;
-      if (!EM) return;
-
-      let target;
-      if (scope === 'testcase') target = this.currentTestCase;
-      else if (scope === 'suite') target = this.currentSuite;
-      else target = this.workspace;
-
-      try {
-        const output   = EM.export(format, target);
-        const ext      = EM.extension ? EM.extension(format) : 'txt';
-        const filename = `seleniumforge-export.${ext}`;
-        this._downloadText(output, filename, 'text/plain');
-        this._closeExportDialog();
-        this._showStatus(`Exported as ${format}`);
-      } catch (e) {
-        this._showStatus('Export error: ' + e.message, 'error');
-      }
-    }
-
-    _bindExportDialog() {
-      const dlg = this._dom.exportDialog;
-      if (!dlg) return;
-
-      if (this._dom.exportFormatSelect) {
-        this._dom.exportFormatSelect.addEventListener('change', () => this._refreshExportPreview());
-      }
-      if (this._dom.exportScopeSelect) {
-        this._dom.exportScopeSelect.addEventListener('change', () => this._refreshExportPreview());
-      }
-      if (this._dom.btnExportConfirm) {
-        this._dom.btnExportConfirm.addEventListener('click', () => this._doExport());
-      }
-      if (this._dom.btnExportClose) {
-        this._dom.btnExportClose.addEventListener('click', () => this._closeExportDialog());
-      }
-      // Close on backdrop click
-      dlg.addEventListener('click', (e) => {
-        if (e.target === dlg) this._closeExportDialog();
-      });
-    }
-
     // ═══════════════════════════════════════════════════════════
     // SECTION 15 – Artifacts Panel
     // ═══════════════════════════════════════════════════════════
 
-    _clearArtifacts() {
-      ['logContainer', 'variablesContainer', 'screenshotsContainer', 'healingContainer'].forEach(key => {
-        if (this._dom[key]) this._dom[key].innerHTML = '';
-      });
-      this._healingSuggestions = [];
-    }
-
-    _appendLog(message, level) {
+    /**
+     * Append a log entry to the log tab.
+     * @param {{level:string, message:string, timestamp?:number}} entry
+     */
+    appendLog(entry) {
       const container = this._dom.logContainer;
       if (!container) return;
-      const div = document.createElement('div');
-      div.className = `log-line log-${level || 'info'}`;
-      div.textContent = `[${fmtTime(Date.now())}] ${message}`;
+
+      const level = (entry.level || 'info').toLowerCase();
+      const ts    = entry.timestamp ? fmtTime(entry.timestamp) : '';
+      const div   = document.createElement('div');
+      div.className = `log-entry log-${level}`;
+      div.innerHTML = `<span class="log-ts">${esc(ts)}</span><span class="log-msg">${esc(entry.message)}</span>`;
       container.appendChild(div);
-      container.scrollTop = container.scrollHeight;
+
+      // Auto-scroll
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
     }
 
-    _appendVariable(name, value) {
+    clearLog() {
+      if (this._dom.logContainer) this._dom.logContainer.innerHTML = '';
+    }
+
+    /** Filter log entries by level (show/hide) */
+    filterLog(level) {
+      const container = this._dom.logContainer;
+      if (!container) return;
+      container.querySelectorAll('.log-entry').forEach(el => {
+        if (!level || el.classList.contains('log-' + level)) {
+          el.style.display = '';
+        } else {
+          el.style.display = 'none';
+        }
+      });
+    }
+
+    /**
+     * Show command reference documentation in the reference pane.
+     * @param {number} commandIndex
+     */
+    _updateReference(commandIndex) {
+      const pane = this._dom.referencePane;
+      if (!pane || !this.currentTestCase) return;
+      const cmd = this.currentTestCase.commands[commandIndex];
+      if (!cmd || !cmd.command) { pane.innerHTML = ''; return; }
+
+      const registry = global.CommandRegistry;
+      const def = registry && registry.getCommand ? registry.getCommand(cmd.command) : null;
+      if (!def) { pane.innerHTML = `<em>No documentation for "${esc(cmd.command)}"</em>`; return; }
+
+      const targetInfo = def.target
+        ? `<dt>Target</dt><dd><code>${esc(def.target.type)}</code>${def.target.required ? ' (required)' : ' (optional)'} — ${esc(def.target.description)}</dd>`
+        : '';
+      const valueInfo = def.value && def.value.type !== 'string'
+        ? `<dt>Value</dt><dd><code>${esc(def.value.type)}</code>${def.value.required ? ' (required)' : ' (optional)'} — ${esc(def.value.description)}</dd>`
+        : '';
+      const deprecated = def.deprecated
+        ? `<p class="ref-deprecated">⚠ Deprecated${def.deprecatedBy ? ` — use ${esc(def.deprecatedBy)} instead` : ''}</p>`
+        : '';
+
+      pane.innerHTML = `
+        <h3 class="ref-cmd">${esc(def.name)}</h3>
+        ${deprecated}
+        <p class="ref-desc">${esc(def.description)}</p>
+        <dl class="ref-params">
+          ${targetInfo}
+          ${valueInfo}
+        </dl>
+        <span class="ref-category">${esc(def.category)}</span>
+      `;
+    }
+
+    /**
+     * Update the variables table in the Variables tab.
+     * @param {Object} vars – key/value pairs
+     */
+    updateVariables(vars) {
       const container = this._dom.variablesContainer;
       if (!container) return;
-      // Update existing or add new
-      let existing = container.querySelector(`[data-var="${CSS.escape(name)}"]`);
-      if (!existing) {
-        existing = document.createElement('div');
-        existing.className = 'var-row';
-        existing.dataset.var = name;
-        container.appendChild(existing);
+
+      // Filter out KEY_* built-ins for cleaner display
+      const userVars = Object.entries(vars).filter(([k]) => !k.startsWith('KEY_'));
+      if (!userVars.length) {
+        container.innerHTML = '<p class="empty-msg">No variables set.</p>';
+        return;
       }
-      existing.innerHTML = `<span class="var-key">${esc(name)}</span><span class="var-val">${esc(String(value))}</span>`;
+
+      container.innerHTML = '<table class="vars-table"><tbody>'
+        + userVars.map(([k, v]) =>
+            `<tr><td class="var-name">${esc(k)}</td><td class="var-val">${esc(String(v))}</td></tr>`
+          ).join('')
+        + '</tbody></table>';
     }
 
-    _appendScreenshot(dataUrl) {
+    /**
+     * Add a screenshot to the Screenshots tab.
+     * @param {string} dataUrl – base64 data URL
+     * @param {string} [label]
+     */
+    addScreenshot(dataUrl, label) {
       const container = this._dom.screenshotsContainer;
       if (!container) return;
-      const img = document.createElement('img');
-      img.src = dataUrl;
-      img.className = 'screenshot-thumb';
-      img.addEventListener('click', () => window.open(dataUrl, '_blank'));
-      container.appendChild(img);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'screenshot-entry';
+      wrapper.innerHTML = `
+        <div class="screenshot-label">${esc(label || fmtTime(Date.now()))}</div>
+        <img class="screenshot-img" src="${dataUrl}" alt="screenshot" />
+      `;
+      container.appendChild(wrapper);
     }
 
-    _appendHealingSuggestion(data) {
-      this._healingSuggestions.push(data);
+    /**
+     * Add a self-healing suggestion to the Healing tab.
+     * @param {{index:number, original:string, suggested:string, testCaseId:string}} suggestion
+     */
+    addHealingSuggestion(suggestion) {
+      this._healingSuggestions.push(suggestion);
+      this._renderHealingTab();
+    }
+
+    /** Apply an approved healing fix to the test case */
+    approveHealing(index) {
+      const s = this._healingSuggestions[index];
+      if (!s) return;
+      const tc = this._findTestCaseAnywhere(s.testCaseId) || this.currentTestCase;
+      if (!tc) return;
+      const cmd = tc.commands[s.index];
+      if (cmd) {
+        cmd.target = s.suggested;
+        if (tc === this.currentTestCase) {
+          this._patchCell(s.index, 'target', s.suggested);
+        }
+        this.saveWorkspace();
+        this._showStatus('Healing applied to step ' + (s.index + 1));
+      }
+      this._healingSuggestions.splice(index, 1);
+      this._renderHealingTab();
+    }
+
+    rejectHealing(index) {
+      this._healingSuggestions.splice(index, 1);
+      this._renderHealingTab();
+    }
+
+    _renderHealingTab() {
       const container = this._dom.healingContainer;
       if (!container) return;
-      const div = document.createElement('div');
-      div.className = 'healing-item';
-      div.innerHTML = `
-        <span class="heal-cmd">${esc(data.command)} #${data.index + 1}</span>
-        <span class="heal-orig">Original: <code>${esc(data.original)}</code></span>
-        <span class="heal-sug">Suggested: <code>${esc(data.suggested)}</code></span>
-        <button class="btn-heal-accept" data-index="${this._healingSuggestions.length - 1}">Accept</button>
-        <button class="btn-heal-skip"   data-index="${this._healingSuggestions.length - 1}">Skip</button>
-      `;
-      container.appendChild(div);
-
-      div.querySelector('.btn-heal-accept').addEventListener('click', (e) => {
-        const idx = parseInt(e.target.dataset.index, 10);
-        this._acceptHealingSuggestion(idx);
-      });
-      div.querySelector('.btn-heal-skip').addEventListener('click', (e) => {
-        e.target.closest('.healing-item').remove();
-      });
-    }
-
-    _acceptHealingSuggestion(suggestionIndex) {
-      const s = this._healingSuggestions[suggestionIndex];
-      if (!s || !this.currentTestCase) return;
-      this.updateCommand(s.index, 'target', s.suggested);
-      const item = this._dom.healingContainer &&
-                   this._dom.healingContainer.querySelector(`[data-index="${suggestionIndex}"]`);
-      if (item) item.closest('.healing-item').remove();
-      this._showStatus(`Healed command #${s.index + 1}`, 'success');
+      if (!this._healingSuggestions.length) {
+        container.innerHTML = '<p class="empty-msg">No healing suggestions.</p>';
+        return;
+      }
+      container.innerHTML = this._healingSuggestions.map((s, i) => `
+        <div class="healing-entry">
+          <div class="healing-step">Step ${s.index + 1}</div>
+          <div class="healing-original"><strong>Original:</strong> ${esc(s.original)}</div>
+          <div class="healing-suggested"><strong>Suggested:</strong> ${esc(s.suggested)}</div>
+          <button class="btn-sm btn-success" data-action="approve-heal" data-index="${i}">Apply</button>
+          <button class="btn-sm btn-danger"  data-action="reject-heal"  data-index="${i}">Dismiss</button>
+        </div>
+      `).join('');
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SECTION 16 – Tree View (workspace sidebar)
+    // SECTION 16 – Tree View
     // ═══════════════════════════════════════════════════════════
 
     /**
@@ -1557,123 +2017,98 @@
       const container = this._dom.treeContainer;
       if (!container) return;
 
-      const activeTab = this._activeTreeTab;
-      let suites;
-
-      if (activeTab === 'dynamic') {
-        suites = this.workspace.dynamicSuites || [];
-      } else {
-        suites = this.workspace.suites || [];
+      if (this._activeTreeTab === 'suites') {
+        this._renderSuiteTree(container);
+      } else if (this._activeTreeTab === 'data') {
+        this._renderDataTab();
+      } else if (this._activeTreeTab === 'profiles') {
+        this._renderProfilesTab();
+      } else if (this._activeTreeTab === 'extensions') {
+        this._renderExtensionsTab();
       }
+    }
 
-      if (!suites.length) {
-        container.innerHTML = '<p class="tree-empty">No suites. Click <strong>+ Suite</strong>.</p>';
+    _renderSuiteTree(container) {
+      if (!this.workspace.suites.length) {
+        container.innerHTML = '<p class="empty-msg">No suites yet. Click <strong>+ Suite</strong>.</p>';
         return;
       }
 
       const frag = document.createDocumentFragment();
-      suites.forEach(suite => {
-        frag.appendChild(this._buildSuiteNode(suite));
+
+      this.workspace.suites.forEach(suite => {
+        const suiteEl = document.createElement('div');
+        suiteEl.className = 'tree-suite';
+        suiteEl.dataset.suiteId = suite.id;
+
+        const expanded = this._treeExpanded[suite.id] !== false; // default expanded
+        const arrow    = expanded ? '▾' : '▸';
+        const badge    = suite.testCases.length ? `<span class="tree-count">${suite.testCases.length}</span>` : '';
+
+        suiteEl.innerHTML = `
+          <div class="tree-suite-row${this.currentSuite && this.currentSuite.id === suite.id ? ' active' : ''}">
+            <span class="tree-arrow">${arrow}</span>
+            <span class="tree-suite-name">${esc(suite.name)}</span>
+            ${badge}
+            <span class="tree-actions">
+              <button class="tree-btn" data-action="add-tc"     data-suite-id="${suite.id}" title="Add test case">+</button>
+              <button class="tree-btn" data-action="rename-suite" data-suite-id="${suite.id}" title="Rename">✎</button>
+              <button class="tree-btn tree-btn-danger" data-action="delete-suite" data-suite-id="${suite.id}" title="Delete">✕</button>
+            </span>
+          </div>
+        `;
+
+        if (expanded) {
+          const tcList = document.createElement('div');
+          tcList.className = 'tree-tc-list';
+
+          suite.testCases.forEach(tc => {
+            const badge = this._resultBadges[tc.id];
+            const tcEl  = document.createElement('div');
+            tcEl.className = 'tree-tc-row' +
+              (this.currentTestCase && this.currentTestCase.id === tc.id ? ' active' : '') +
+              (badge ? ` result-${badge}` : '');
+            tcEl.dataset.tcId    = tc.id;
+            tcEl.dataset.suiteId = suite.id;
+
+            tcEl.innerHTML = `
+              <span class="tree-tc-icon">▷</span>
+              <span class="tree-tc-name">${esc(tc.name)}</span>
+              ${badge ? `<span class="result-dot result-dot-${badge}"></span>` : ''}
+              <span class="tree-tc-actions">
+                <button class="tree-btn" data-action="rename-tc"
+                        data-suite-id="${suite.id}" data-tc-id="${tc.id}" title="Rename">✎</button>
+                <button class="tree-btn" data-action="duplicate-tc"
+                        data-suite-id="${suite.id}" data-tc-id="${tc.id}" title="Duplicate">⎘</button>
+                <button class="tree-btn tree-btn-danger" data-action="delete-tc"
+                        data-suite-id="${suite.id}" data-tc-id="${tc.id}" title="Delete">✕</button>
+              </span>
+            `;
+            tcList.appendChild(tcEl);
+          });
+
+          suiteEl.appendChild(tcList);
+        }
+
+        frag.appendChild(suiteEl);
       });
 
       container.innerHTML = '';
       container.appendChild(frag);
     }
 
-    _buildSuiteNode(suite) {
-      const expanded = this._treeExpanded[suite.id] !== false; // default expanded
-      const div = document.createElement('div');
-      div.className = 'suite-node';
-      div.dataset.suiteId = suite.id;
+    _updateTreeSelection() {
+      const container = this._dom.treeContainer;
+      if (!container) return;
 
-      const hasTestCases = suite.testCases && suite.testCases.length;
-      const activeId = this.currentTestCase && this.currentTestCase.id;
-
-      div.innerHTML = `
-        <div class="suite-header ${this.currentSuite && this.currentSuite.id === suite.id ? 'suite-selected' : ''}">
-          <span class="suite-toggle">${expanded ? '▾' : '▸'}</span>
-          <span class="suite-name" title="${esc(suite.name)}">${esc(suite.name)}</span>
-          <span class="suite-count">${suite.testCases ? suite.testCases.length : 0}</span>
-          <button class="btn-tc-add" data-suite-id="${suite.id}" title="Add test case">+</button>
-          <button class="btn-suite-rename" data-suite-id="${suite.id}" title="Rename">✎</button>
-          <button class="btn-suite-delete" data-suite-id="${suite.id}" title="Delete">✕</button>
-        </div>
-        <div class="tc-list" style="display:${expanded ? 'block' : 'none'}">
-          ${!hasTestCases ? '<p class="tc-empty">No test cases.</p>' : ''}
-          ${(suite.testCases || []).map(tc => `
-            <div class="tc-item ${tc.id === activeId ? 'tc-selected' : ''}" data-suite-id="${suite.id}" data-tc-id="${tc.id}">
-              <span class="tc-name" title="${esc(tc.name)}">${esc(tc.name)}</span>
-              ${this._resultBadges[tc.id] ? `<span class="result-badge result-${this._resultBadges[tc.id]}">${this._resultBadges[tc.id]}</span>` : ''}
-              <button class="btn-tc-rename" data-suite-id="${suite.id}" data-tc-id="${tc.id}" title="Rename">✎</button>
-              <button class="btn-tc-delete" data-suite-id="${suite.id}" data-tc-id="${tc.id}" title="Delete">✕</button>
-              <button class="btn-tc-dupe"   data-suite-id="${suite.id}" data-tc-id="${tc.id}" title="Duplicate">⎘</button>
-            </div>
-          `).join('')}
-        </div>
-      `;
-
-      // Suite header click → expand/collapse
-      div.querySelector('.suite-header').addEventListener('click', (e) => {
-        if (e.target.closest('button')) return;
-        this._treeExpanded[suite.id] = !this._treeExpanded[suite.id];
-        this.renderTree();
-        this._selectSuite(suite);
+      container.querySelectorAll('.tree-suite-row').forEach(el => {
+        const sid = el.closest('.tree-suite') && el.closest('.tree-suite').dataset.suiteId;
+        el.classList.toggle('active', !!(this.currentSuite && this.currentSuite.id === sid));
       });
 
-      // Test case click → open
-      div.querySelectorAll('.tc-item').forEach(tcEl => {
-        tcEl.addEventListener('click', (e) => {
-          if (e.target.closest('button')) return;
-          const tc = suite.testCases.find(t => t.id === tcEl.dataset.tcId);
-          if (tc) this.openTestCase(suite, tc);
-        });
+      container.querySelectorAll('.tree-tc-row').forEach(el => {
+        el.classList.toggle('active', !!(this.currentTestCase && this.currentTestCase.id === el.dataset.tcId));
       });
-
-      // Buttons
-      div.querySelectorAll('.btn-tc-add').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.addTestCase(btn.dataset.suiteId);
-        });
-      });
-      div.querySelectorAll('.btn-suite-rename').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const newName = prompt('Rename suite:', suite.name);
-          if (newName) this.renameSuite(btn.dataset.suiteId, newName);
-        });
-      });
-      div.querySelectorAll('.btn-suite-delete').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (confirm(`Delete suite "${suite.name}"?`)) this.deleteSuite(btn.dataset.suiteId);
-        });
-      });
-      div.querySelectorAll('.btn-tc-rename').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const tc = suite.testCases.find(t => t.id === btn.dataset.tcId);
-          if (!tc) return;
-          const newName = prompt('Rename test case:', tc.name);
-          if (newName) this.renameTestCase(btn.dataset.suiteId, btn.dataset.tcId, newName);
-        });
-      });
-      div.querySelectorAll('.btn-tc-delete').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const tc = suite.testCases.find(t => t.id === btn.dataset.tcId);
-          if (!tc) return;
-          if (confirm(`Delete "${tc.name}"?`)) this.deleteTestCase(btn.dataset.suiteId, btn.dataset.tcId);
-        });
-      });
-      div.querySelectorAll('.btn-tc-dupe').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.duplicateTestCase(btn.dataset.suiteId, btn.dataset.tcId);
-        });
-      });
-
-      return div;
     }
 
     _selectSuite(suite) {
@@ -1681,79 +2116,45 @@
       this._updateTreeSelection();
     }
 
-    _updateTreeSelection() {
-      const container = this._dom.treeContainer;
-      if (!container) return;
-      container.querySelectorAll('.suite-header').forEach(el => {
-        el.classList.toggle('suite-selected',
-          el.closest('.suite-node').dataset.suiteId === (this.currentSuite && this.currentSuite.id));
-      });
-      container.querySelectorAll('.tc-item').forEach(el => {
-        el.classList.toggle('tc-selected',
-          el.dataset.tcId === (this.currentTestCase && this.currentTestCase.id));
-      });
-    }
-
-    _bindTreeTabs() {
-      const tabs = this._dom.treeTabs;
-      if (!tabs) return;
-      tabs.addEventListener('click', (e) => {
-        const tab = e.target.closest('[data-tab]');
-        if (!tab) return;
-        tabs.querySelectorAll('[data-tab]').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        this._activeTreeTab = tab.dataset.tab;
-        this.renderTree();
-      });
-    }
-
     // ═══════════════════════════════════════════════════════════
     // SECTION 17 – Settings
     // ═══════════════════════════════════════════════════════════
 
-    openSettingsDialog() {
+    showSettingsDialog() {
+      const dialog = this._dom.settingsDialog;
+      if (!dialog) return;
       this._applySettingsToUI();
-      if (this._dom.settingsDialog) this._dom.settingsDialog.style.display = 'flex';
-    }
-
-    _closeSettingsDialog() {
-      if (this._dom.settingsDialog) this._dom.settingsDialog.style.display = 'none';
+      dialog.style.display = 'flex';
     }
 
     _applySettingsToUI() {
-      const s  = this.settings;
-      const d  = this._dom;
-      if (d.settingTimeout)    d.settingTimeout.value   = s.defaultTimeout;
-      if (d.settingSpeed)      d.settingSpeed.value     = s.speed;
-      if (d.settingSelfHeal)   d.settingSelfHeal.checked  = s.selfHealing;
-      if (d.settingScreenshot) d.settingScreenshot.checked = s.screenshotOnFailure;
-      if (d.settingTheme)      d.settingTheme.value     = s.theme;
-      if (d.speedSelect)       d.speedSelect.value      = s.speed;
+      const d = this._dom;
+      if (d.settingTimeout)    d.settingTimeout.value    = this.settings.defaultTimeout;
+      if (d.settingSpeed)      d.settingSpeed.value      = this.settings.speed;
+      if (d.settingSelfHeal)   d.settingSelfHeal.checked = this.settings.selfHealing;
+      if (d.settingScreenshot) d.settingScreenshot.checked = this.settings.screenshotOnFailure;
+      if (d.settingTheme)      d.settingTheme.value      = this.settings.theme;
     }
 
-    _saveSettingsFromUI() {
+    _readSettingsFromUI() {
       const d = this._dom;
-      this.settings.defaultTimeout      = parseInt(d.settingTimeout && d.settingTimeout.value, 10) || 30000;
-      this.settings.speed               = (d.settingSpeed && d.settingSpeed.value) || 'MEDIUM';
-      this.settings.selfHealing         = !!(d.settingSelfHeal && d.settingSelfHeal.checked);
-      this.settings.screenshotOnFailure = !!(d.settingScreenshot && d.settingScreenshot.checked);
-      this.settings.theme               = (d.settingTheme && d.settingTheme.value) || 'light';
-      this._applyTheme(this.settings.theme);
+      if (d.settingTimeout)    this.settings.defaultTimeout      = parseInt(d.settingTimeout.value, 10) || 30000;
+      if (d.settingSpeed)      this.settings.speed               = d.settingSpeed.value;
+      if (d.settingSelfHeal)   this.settings.selfHealing         = d.settingSelfHeal.checked;
+      if (d.settingScreenshot) this.settings.screenshotOnFailure = d.settingScreenshot.checked;
+      if (d.settingTheme)      this.settings.theme               = d.settingTheme.value;
+    }
+
+    saveSettings() {
+      this._readSettingsFromUI();
       this._saveSettings();
-      this._closeSettingsDialog();
-      this._showStatus('Settings saved.');
+      this._applyTheme(this.settings.theme);
+      if (this._dom.settingsDialog) this._dom.settingsDialog.style.display = 'none';
+      this._showStatus('Settings saved');
     }
 
     _applyTheme(theme) {
-      document.documentElement.dataset.theme = theme || 'light';
-    }
-
-    _bindSettingsDialog() {
-      const dlg = this._dom.settingsDialog;
-      if (!dlg) return;
-      if (this._dom.btnSettingsSave)  this._dom.btnSettingsSave.addEventListener('click', () => this._saveSettingsFromUI());
-      if (this._dom.btnSettingsClose) this._dom.btnSettingsClose.addEventListener('click', () => this._closeSettingsDialog());
-      dlg.addEventListener('click', (e) => { if (e.target === dlg) this._closeSettingsDialog(); });
+      document.documentElement.setAttribute('data-theme', theme || 'light');
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1762,65 +2163,62 @@
 
     _bindGlobalKeyboard() {
       document.addEventListener('keydown', (e) => {
-        // Don't intercept if focus is in an input/textarea
-        const tag = document.activeElement && document.activeElement.tagName;
-        const inInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
-
-        if (e.key === 'Escape') {
-          this._hideAutocomplete();
-          this._commitActiveEditor();
+        // Ignore shortcuts when user is typing in an input/textarea
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' ||
+            e.target.isContentEditable) {
+          // Only handle Escape
+          if (e.key === 'Escape') {
+            this._commitActiveEditor(true /* cancel */);
+            this._hideAutocomplete();
+          }
           return;
         }
 
-        if (this._autocompleteVisible) {
-          if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            this._autocompleteIndex = Math.min(this._autocompleteIndex + 1, this._autocompleteItems.length - 1);
-            this._autocompleteSelectByIndex(this._autocompleteIndex);
-            return;
-          }
-          if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            this._autocompleteIndex = Math.max(this._autocompleteIndex - 1, 0);
-            this._autocompleteSelectByIndex(this._autocompleteIndex);
-            return;
-          }
-          if (e.key === 'Enter' || e.key === 'Tab') {
-            e.preventDefault();
-            if (this._autocompleteIndex >= 0) this._autocompleteCommit(this._autocompleteIndex);
-            else this._hideAutocomplete();
-            return;
-          }
+        const ctrl = e.ctrlKey || e.metaKey;
+
+        if (ctrl && e.key === 'z') { e.preventDefault(); this.undo(); return; }
+        if (ctrl && e.key === 'y') { e.preventDefault(); this.redo(); return; }
+        if (ctrl && e.key === 'c') { e.preventDefault(); this.copyCommands(); return; }
+        if (ctrl && e.key === 'v') { e.preventDefault(); this.pasteCommands(); return; }
+        if (ctrl && e.key === 'a') { e.preventDefault(); this._selectAllCommands(); return; }
+
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          this.deleteCommand();
+          return;
         }
 
-        if (!inInput) {
-          if (e.ctrlKey || e.metaKey) {
-            switch (e.key.toLowerCase()) {
-              case 'z': e.preventDefault(); e.shiftKey ? this.redo() : this.undo(); break;
-              case 'y': e.preventDefault(); this.redo(); break;
-              case 'c': e.preventDefault(); this.copyCommands(); break;
-              case 'v': e.preventDefault(); this.pasteCommands(); break;
-              case 'a': e.preventDefault(); this._selectAllCommands(); break;
-            }
-          }
-          if (e.key === 'Delete' || e.key === 'Backspace') {
-            e.preventDefault();
-            this.deleteCommand();
-          }
-          if (e.key === 'F5')  { e.preventDefault(); this.playTestCase(); }
-          if (e.key === 'F6')  { e.preventDefault(); this.stepCommand(); }
-          if (e.key === 'F7')  { e.preventDefault(); this.pausePlayback(); }
-          if (e.key === 'F8')  { e.preventDefault(); this.stopPlayback(); }
-          if (e.key === 'F9')  { e.preventDefault(); this.toggleBreakpoint(this.selectedCommandIndex); }
-          if (e.key === 'F2')  { e.preventDefault(); this.addCommand(); }
+        if (e.key === 'F5')  { e.preventDefault(); this.playTestCase(); return; }
+        if (e.key === 'F6')  { e.preventDefault(); this.playTestSuite(); return; }
+        if (e.key === 'F8')  { e.preventDefault(); this.stopExecution(); return; }
+        if (e.key === 'F9')  { e.preventDefault(); this.pauseExecution(); return; }
+
+        // Arrow keys for row navigation
+        if (e.key === 'ArrowDown')  { e.preventDefault(); this._moveRowSelection(1);  return; }
+        if (e.key === 'ArrowUp')    { e.preventDefault(); this._moveRowSelection(-1); return; }
+
+        // Autocomplete navigation
+        if (this._autocompleteVisible) {
+          if (e.key === 'ArrowDown')  { e.preventDefault(); this._autocompleteNavigate(1);  return; }
+          if (e.key === 'ArrowUp')    { e.preventDefault(); this._autocompleteNavigate(-1); return; }
+          if (e.key === 'Enter')      { e.preventDefault(); this._autocompleteSelect();     return; }
+          if (e.key === 'Escape')     { this._hideAutocomplete(); return; }
         }
       });
+    }
+
+    _moveRowSelection(delta) {
+      if (!this.currentTestCase) return;
+      const max   = this.currentTestCase.commands.length - 1;
+      const newIdx = Math.max(0, Math.min(max, this.selectedCommandIndex + delta));
+      this.selectCommand(newIdx);
+      this._scrollToRow(newIdx);
     }
 
     _selectAllCommands() {
       if (!this.currentTestCase) return;
       this.selectedCommandIndices = this.currentTestCase.commands.map((_, i) => i);
-      this.selectedCommandIndex   = this.selectedCommandIndices[0] || -1;
+      this.selectedCommandIndex   = this.selectedCommandIndices[0] || 0;
       this._highlightSelectedRows();
     }
 
@@ -1829,212 +2227,270 @@
     // ═══════════════════════════════════════════════════════════
 
     _bindRuntimeMessages() {
-      if (!chrome || !chrome.runtime || !chrome.runtime.onMessage) return;
-      chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-        this._handleRuntimeMessage(msg);
-        sendResponse({ ok: true });
-        return false;
-      });
+      try {
+        chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+          this._handleRuntimeMessage(msg, sender, sendResponse);
+          return true; // keep channel open for async responses
+        });
+      } catch (e) {
+        console.warn('[SeleniumForge] Could not bind runtime messages:', e);
+      }
     }
 
-    _handleRuntimeMessage(msg) {
+    _handleRuntimeMessage(msg, sender, sendResponse) {
       switch (msg.type) {
-        case 'RECORDED_COMMAND':
-          this._onRecordedCommand(msg.command);
+        case 'SF_COMMAND_RECORDED':
+          this.onCommandRecorded(msg.command);
+          sendResponse({ ok: true });
           break;
-        case 'PICKER_RESULT':
-          this._onPickerResult(msg);
+
+        case 'SF_LOCATOR_SUGGESTIONS':
+          this._onLocatorSuggestions(msg.locators);
+          sendResponse({ ok: true });
           break;
-        case 'PLAYBACK_LOG':
-          this._appendLog(msg.message, msg.level);
+
+        case 'SF_SCREENSHOT':
+          this.addScreenshot(msg.dataUrl, msg.label);
+          sendResponse({ ok: true });
           break;
-        case 'PLAYBACK_VARIABLE':
-          this._appendVariable(msg.name, msg.value);
+
+        case 'SF_HEALING_SUGGESTION':
+          this.addHealingSuggestion(msg.suggestion);
+          sendResponse({ ok: true });
           break;
-        case 'PLAYBACK_SCREENSHOT':
-          this._appendScreenshot(msg.dataUrl);
+
+        case 'SF_LOG':
+          this.appendLog(msg.entry);
+          sendResponse({ ok: true });
           break;
-        case 'PLAYBACK_HEALING':
-          this._appendHealingSuggestion(msg);
+
+        case 'SF_PLAYBACK_STATE':
+          if (msg.state === 'paused')  this._updatePlayPauseButtons(true);
+          if (msg.state === 'resumed') this._updatePlayPauseButtons(false);
+          if (msg.state === 'stopped') this._onPlaybackFinished();
+          sendResponse({ ok: true });
           break;
-        case 'RECORDING_STARTED':
-          this.isRecording = true;
-          this._updateToolbarState();
-          break;
-        case 'RECORDING_STOPPED':
-          this.isRecording = false;
-          this._updateToolbarState();
-          break;
+
         default:
-          break;
+          sendResponse({ ok: false, error: 'Unknown message type: ' + msg.type });
       }
     }
 
     _bindStorageChange() {
-      if (!chrome || !chrome.storage) return;
-      chrome.storage.onChanged.addListener((changes, area) => {
-        if (area !== 'local') return;
-        // Re-load workspace if another panel changed it
-        if (changes[STORAGE_KEY_WORKSPACE]) {
-          const newVal = changes[STORAGE_KEY_WORKSPACE].newValue;
-          if (newVal) this.workspace = newVal;
-          this.renderTree();
+      try {
+        chrome.storage.onChanged.addListener((changes, area) => {
+          if (area !== 'local') return;
+          if (changes[STORAGE_KEY_WORKSPACE]) {
+            // Reload workspace if changed externally (e.g., by another panel)
+            const newVal = changes[STORAGE_KEY_WORKSPACE].newValue;
+            if (newVal && JSON.stringify(newVal) !== JSON.stringify(this.workspace)) {
+              this.workspace = newVal;
+              this.renderTree();
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('[SeleniumForge] Could not bind storage change listener:', e);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SECTION 20 – Event Binding Helpers
+    // ═══════════════════════════════════════════════════════════
+
+    _bindToolbar() {
+      const d = this._dom;
+
+      d.btnRecord    && d.btnRecord.addEventListener('click',    () => this.isRecording ? this.stopRecording()  : this.startRecording());
+      d.btnPlay      && d.btnPlay.addEventListener('click',      () => this.playTestCase());
+      d.btnPlaySuite && d.btnPlaySuite.addEventListener('click', () => this.playTestSuite());
+      d.btnPlayAll   && d.btnPlayAll.addEventListener('click',   () => this.playAll());
+      d.btnPause     && d.btnPause.addEventListener('click',     () => this.pauseExecution());
+      d.btnStop      && d.btnStop.addEventListener('click',      () => this.stopExecution());
+      d.btnAddCmd    && d.btnAddCmd.addEventListener('click',    () => this.addCommand());
+      d.btnDeleteCmd && d.btnDeleteCmd.addEventListener('click', () => this.deleteCommand());
+      d.btnUndo      && d.btnUndo.addEventListener('click',      () => this.undo());
+      d.btnRedo      && d.btnRedo.addEventListener('click',      () => this.redo());
+      d.btnSettings  && d.btnSettings.addEventListener('click',  () => this.showSettingsDialog());
+      d.btnExport    && d.btnExport.addEventListener('click',    () => this.showExportDialog());
+
+      // Step button (run current command)
+      const btnStep = document.getElementById('btn-step');
+      if (btnStep) btnStep.addEventListener('click', () => {
+        if (this.selectedCommandIndex >= 0) {
+          this.executeSingleCommand(this.selectedCommandIndex);
+        }
+      });
+
+      // Resume button (shown when paused)
+      const btnResume = document.getElementById('btn-resume');
+      if (btnResume) btnResume.addEventListener('click', () => this.resumeExecution());
+
+      // Suite buttons
+      d.btnAddSuite    && d.btnAddSuite.addEventListener('click',    () => {
+        const name = prompt('Suite name:');
+        if (name) this.addSuite(name);
+      });
+      d.btnDeleteSuite && d.btnDeleteSuite.addEventListener('click', () => {
+        if (this.currentSuite) {
+          if (confirm(`Delete suite "${this.currentSuite.name}"?`)) {
+            this.deleteSuite(this.currentSuite.id);
+          }
+        }
+      });
+
+      // Speed select
+      d.speedSelect && d.speedSelect.addEventListener('change', () => {
+        if (this._playbackEngine) {
+          this._playbackEngine.setSpeed(this._speedMs());
+        }
+      });
+
+      // Data / profiles / extensions "add" buttons
+      d.btnAddData      && d.btnAddData.addEventListener('click',      () => this.loadTestData());
+      d.btnAddProfile   && d.btnAddProfile.addEventListener('click',   () => {
+        const name = prompt('Profile name:');
+        if (name) this.addProfile(name);
+      });
+      d.btnAddExtension && d.btnAddExtension.addEventListener('click', () => {
+        const name = prompt('Extension script name:');
+        if (name) {
+          const script = { id: uid(), name, code: '' };
+          this.extensionScripts.push(script);
+          this._saveExtensionScripts();
+          this._renderExtensionsTab();
         }
       });
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // SECTION 20 – Utility Helpers
-    // ═══════════════════════════════════════════════════════════
+    _bindTreeTabs() {
+      const tabs = this._dom.treeTabs;
+      if (!tabs) return;
 
-    _dom = {};
+      tabs.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-tab]');
+        if (!btn) return;
+        this._activeTreeTab = btn.dataset.tab;
+        tabs.querySelectorAll('[data-tab]').forEach(b =>
+          b.classList.toggle('active', b === btn)
+        );
+        this.renderTree();
+      });
 
-    /** Show text in the status bar */
-    _showStatus(message, type) {
-      const bar = this._dom.statusBar;
-      if (!bar) return;
-      bar.textContent = message;
-      bar.className   = 'status-bar' + (type ? ' status-' + type : '');
+      // Delegate tree item clicks
+      const container = this._dom.treeContainer;
+      if (!container) return;
+
+      container.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (btn) {
+          this._handleTreeAction(btn.dataset.action, btn.dataset);
+          return;
+        }
+
+        // Click on a suite row — toggle expand
+        const suiteRow = e.target.closest('.tree-suite-row');
+        if (suiteRow) {
+          const sid = suiteRow.closest('.tree-suite').dataset.suiteId;
+          this._treeExpanded[sid] = !this._treeExpanded[sid];
+          this.renderTree();
+          return;
+        }
+
+        // Click on a test case row — open it
+        const tcRow = e.target.closest('.tree-tc-row');
+        if (tcRow) {
+          const suite = this._suiteById(tcRow.dataset.suiteId);
+          const tc    = suite && suite.testCases.find(t => t.id === tcRow.dataset.tcId);
+          if (suite && tc) this.openTestCase(suite, tc);
+        }
+      });
     }
 
-    /** Update test case title label */
-    _updateTestCaseTitle() {
-      if (this._dom.testCaseTitle) {
-        this._dom.testCaseTitle.textContent = this.currentTestCase
-          ? this.currentTestCase.name
-          : 'No Test Case Selected';
+    _handleTreeAction(action, data) {
+      switch (action) {
+        case 'add-tc': {
+          const name = prompt('Test case name:');
+          if (name) this.addTestCase(data.suiteId, name);
+          break;
+        }
+        case 'rename-suite': {
+          const suite = this._suiteById(data.suiteId);
+          if (!suite) break;
+          const name = prompt('New suite name:', suite.name);
+          if (name) this.renameSuite(data.suiteId, name);
+          break;
+        }
+        case 'delete-suite': {
+          const suite = this._suiteById(data.suiteId);
+          if (!suite) break;
+          if (confirm(`Delete suite "${suite.name}"?`)) {
+            this.deleteSuite(data.suiteId);
+          }
+          break;
+        }
+        case 'rename-tc': {
+          const tc = this._testCaseById(data.suiteId, data.tcId);
+          if (!tc) break;
+          const name = prompt('New test case name:', tc.name);
+          if (name) this.renameTestCase(data.suiteId, data.tcId, name);
+          break;
+        }
+        case 'duplicate-tc':
+          this.duplicateTestCase(data.suiteId, data.tcId);
+          break;
+
+        case 'delete-tc': {
+          const tc = this._testCaseById(data.suiteId, data.tcId);
+          if (!tc) break;
+          if (confirm(`Delete test case "${tc.name}"?`)) {
+            this.deleteTestCase(data.suiteId, data.tcId);
+          }
+          break;
+        }
+        // Data tab actions
+        case 'preview':      this.previewData(data.id);        break;
+        case 'use':          this.useDataInTestCase(data.id);  break;
+        case 'remove':       this.removeTestData(data.id);     break;
+        // Profile tab actions
+        case 'set-active':     this.setActiveProfile(data.id); break;
+        case 'add-var': {
+          const varName  = prompt('Variable name:');
+          const varValue = varName ? prompt('Value:') : null;
+          if (varName && varValue !== null) this.addVariable(data.id, varName, varValue);
+          break;
+        }
+        case 'delete-profile': this.deleteProfile(data.id);   break;
+        case 'remove-var':     this.removeVariable(data.profileId, data.varName); break;
+        // Extensions
+        case 'delete-ext': {
+          this.extensionScripts = this.extensionScripts.filter(s => s.id !== data.id);
+          this._saveExtensionScripts();
+          this._renderExtensionsTab();
+          break;
+        }
       }
-    }
-
-    /** Update toolbar button disabled / active states */
-    _updateToolbarState() {
-      const d  = this._dom;
-      const tc = !!this.currentTestCase;
-      const pl = this.isPlaying;
-      const rc = this.isRecording;
-
-      if (d.btnRecord)    { d.btnRecord.classList.toggle('active', rc); d.btnRecord.disabled = pl; }
-      if (d.btnPlay)      { d.btnPlay.disabled     = !tc || pl || rc; }
-      if (d.btnPlaySuite) { d.btnPlaySuite.disabled = !this.currentSuite || pl || rc; }
-      if (d.btnPlayAll)   { d.btnPlayAll.disabled   = pl || rc; }
-      if (d.btnPause)     { d.btnPause.disabled     = !pl; }
-      if (d.btnStop)      { d.btnStop.disabled      = !pl; }
-      if (d.btnStep)      { d.btnStep.disabled      = !pl; }
-      if (d.btnAddCmd)    { d.btnAddCmd.disabled    = !tc || pl; }
-      if (d.btnDeleteCmd) { d.btnDeleteCmd.disabled = !tc || pl || this.selectedCommandIndex < 0; }
-      this._updateUndoButtons();
-    }
-
-    _rowByIndex(index) {
-      const tbody = this._dom.commandTbody;
-      return tbody && tbody.querySelector(`tr[data-index="${index}"]`);
-    }
-
-    _suiteById(id) {
-      return this.workspace.suites.find(s => s.id === id) || null;
-    }
-
-    _testCaseById(suiteId, tcId) {
-      const suite = this._suiteById(suiteId);
-      return suite ? (suite.testCases.find(tc => tc.id === tcId) || null) : null;
-    }
-
-    _highlightSelectedRows() {
-      const tbody = this._dom.commandTbody;
-      if (!tbody) return;
-      tbody.querySelectorAll('tr').forEach(tr => {
-        const idx = parseInt(tr.dataset.index, 10);
-        tr.classList.toggle(ROW_STATE.selected, this.selectedCommandIndices.includes(idx));
-      });
-    }
-
-    _showCommandInDetail(index) {
-      if (!this.currentTestCase) return;
-      const cmd = this.currentTestCase.commands[index];
-      const d   = this._dom;
-      if (!cmd) {
-        this._clearDetailPanel();
-        return;
-      }
-      if (d.detailCommand) d.detailCommand.textContent = cmd.command;
-      if (d.detailTarget)  d.detailTarget.textContent  = cmd.target;
-      if (d.detailValue)   d.detailValue.textContent   = cmd.value;
-      if (d.detailComment) d.detailComment.textContent = cmd.comment;
-    }
-
-    _clearDetailPanel() {
-      ['detailCommand', 'detailTarget', 'detailValue', 'detailComment'].forEach(k => {
-        if (this._dom[k]) this._dom[k].textContent = '';
-      });
-      if (this._dom.referencePane) this._dom.referencePane.innerHTML = '';
-    }
-
-    _updateReference(index) {
-      const CR = window.CommandRegistry;
-      const d  = this._dom;
-      if (!CR || !d.referencePane || !this.currentTestCase) return;
-      const cmd = this.currentTestCase.commands[index];
-      if (!cmd) return;
-      const info = CR.getInfo ? CR.getInfo(cmd.command) : null;
-      if (!info) {
-        d.referencePane.innerHTML = '';
-        return;
-      }
-      d.referencePane.innerHTML = `
-        <strong>${esc(info.name || cmd.command)}</strong>
-        <p>${esc(info.description || '')}</p>
-        ${info.targetLabel ? `<p><strong>Target:</strong> ${esc(info.targetLabel)}</p>` : ''}
-        ${info.valueLabel  ? `<p><strong>Value:</strong> ${esc(info.valueLabel)}</p>`  : ''}
-      `;
-    }
-
-    _bindToolbar() {
-      const d = this._dom;
-      if (d.btnRecord)    d.btnRecord.addEventListener('click',    () => this.toggleRecording());
-      if (d.btnPlay)      d.btnPlay.addEventListener('click',      () => this.playTestCase());
-      if (d.btnPlaySuite) d.btnPlaySuite.addEventListener('click', () => this.playSuite());
-      if (d.btnPlayAll)   d.btnPlayAll.addEventListener('click',   () => this.playAll());
-      if (d.btnPause)     d.btnPause.addEventListener('click',     () => this.pausePlayback());
-      if (d.btnStop)      d.btnStop.addEventListener('click',      () => this.stopPlayback());
-      if (d.btnStep)      d.btnStep.addEventListener('click',      () => this.stepCommand());
-      if (d.btnAddCmd)    d.btnAddCmd.addEventListener('click',    () => this.addCommand());
-      if (d.btnDeleteCmd) d.btnDeleteCmd.addEventListener('click', () => this.deleteCommand());
-      if (d.btnUndo)      d.btnUndo.addEventListener('click',      () => this.undo());
-      if (d.btnRedo)      d.btnRedo.addEventListener('click',      () => this.redo());
-      if (d.btnSettings)  d.btnSettings.addEventListener('click',  () => this.openSettingsDialog());
-      if (d.btnExport)    d.btnExport.addEventListener('click',    () => this.openExportDialog());
-      if (d.btnAddSuite)  d.btnAddSuite.addEventListener('click',  () => this.addSuite());
-      if (d.btnAddData)   d.btnAddData.addEventListener('click',   () => this.importTestDataCSV());
-      if (d.btnAddProfile) d.btnAddProfile.addEventListener('click', () => {
-        const name = prompt('Profile name:');
-        if (name) this.addProfile(name);
-      });
-      if (d.speedSelect)  d.speedSelect.addEventListener('change', () => {
-        this.settings.speed = d.speedSelect.value;
-        this._saveSettings();
-      });
     }
 
     _bindCommandTable() {
       const tbody = this._dom.commandTbody;
-      const table = this._dom.commandTable;
-      if (!tbody || !table) return;
+      if (!tbody) return;
 
-      // Row selection
+      // ── Click: select row, toggle breakpoint, inline pick ──
       tbody.addEventListener('click', (e) => {
-        const tr = e.target.closest('tr');
-        if (!tr || !tr.dataset.index) return;
+        const tr = e.target.closest('tr[data-index]');
+        if (!tr) return;
         const index = parseInt(tr.dataset.index, 10);
 
-        // Breakpoint toggle via dot
+        // Breakpoint dot
         if (e.target.classList.contains('bp-dot')) {
           this.toggleBreakpoint(index);
           return;
         }
 
-        // Inline pick target
+        // Inline pick button
         if (e.target.classList.contains('btn-pick-inline')) {
-          this.activatePicker(parseInt(e.target.dataset.index, 10));
+          this.startTargetPicker(index);
           return;
         }
 
@@ -2042,40 +2498,37 @@
         if (e.shiftKey && this.selectedCommandIndex >= 0) {
           const min = Math.min(this.selectedCommandIndex, index);
           const max = Math.max(this.selectedCommandIndex, index);
-          this.selectedCommandIndices = [];
-          for (let i = min; i <= max; i++) this.selectedCommandIndices.push(i);
+          this.selectedCommandIndices = Array.from(
+            { length: max - min + 1 }, (_, i) => min + i
+          );
           this._highlightSelectedRows();
-        } else if (e.ctrlKey || e.metaKey) {
-          const pos = this.selectedCommandIndices.indexOf(index);
-          if (pos >= 0) this.selectedCommandIndices.splice(pos, 1);
-          else          this.selectedCommandIndices.push(index);
-          this.selectedCommandIndex = index;
+          return;
+        }
+        if (e.ctrlKey || e.metaKey) {
+          if (this.selectedCommandIndices.includes(index)) {
+            this.selectedCommandIndices = this.selectedCommandIndices.filter(i => i !== index);
+          } else {
+            this.selectedCommandIndices.push(index);
+          }
           this._highlightSelectedRows();
-        } else {
-          this.selectCommand(index);
+          return;
         }
 
-        this._updateToolbarState();
+        this.selectCommand(index);
       });
 
-      // Double-click to inline edit
+      // ── Double-click: start inline edit ──
       tbody.addEventListener('dblclick', (e) => {
-        const cell = e.target.closest('td[data-field]');
-        if (!cell) return;
-        this._openEditor(cell);
+        const td = e.target.closest('td[data-field]');
+        if (!td) return;
+        this._startEditing(td);
       });
 
-      // Drag-and-drop reorder
-      this._bindCommandDragDrop(tbody);
-    }
-
-    _bindCommandDragDrop(tbody) {
-      let dragIndex = null;
-
+      // ── Drag & drop for reordering ──
       tbody.addEventListener('dragstart', (e) => {
         const tr = e.target.closest('tr[data-index]');
         if (!tr) return;
-        dragIndex = parseInt(tr.dataset.index, 10);
+        this._dragFromIndex = parseInt(tr.dataset.index, 10);
         e.dataTransfer.effectAllowed = 'move';
         tr.classList.add('dragging');
       });
@@ -2084,263 +2537,396 @@
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         const tr = e.target.closest('tr[data-index]');
+        tbody.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
         if (tr) tr.classList.add('drag-over');
-      });
-
-      tbody.addEventListener('dragleave', (e) => {
-        const tr = e.target.closest('tr[data-index]');
-        if (tr) tr.classList.remove('drag-over');
       });
 
       tbody.addEventListener('drop', (e) => {
         e.preventDefault();
         const tr = e.target.closest('tr[data-index]');
-        if (!tr || dragIndex === null) return;
+        tbody.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        tbody.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+        if (!tr || this._dragFromIndex === undefined) return;
         const toIndex = parseInt(tr.dataset.index, 10);
-        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over', 'dragging'));
-        if (dragIndex !== toIndex) this.moveCommand(dragIndex, toIndex);
-        dragIndex = null;
+        if (toIndex !== this._dragFromIndex) {
+          this.moveCommand(this._dragFromIndex, toIndex);
+        }
+        this._dragFromIndex = undefined;
       });
 
       tbody.addEventListener('dragend', () => {
-        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over', 'dragging'));
-        dragIndex = null;
-      });
-
-      // Make rows draggable
-      const observer = new MutationObserver(() => {
-        tbody.querySelectorAll('tr[data-index]').forEach(tr => {
-          if (!tr.draggable) tr.draggable = true;
+        tbody.querySelectorAll('.dragging, .drag-over').forEach(el => {
+          el.classList.remove('dragging', 'drag-over');
         });
       });
-      observer.observe(tbody, { childList: true });
-      tbody.querySelectorAll('tr[data-index]').forEach(tr => { tr.draggable = true; });
+
+      // ── Autocomplete dropdown clicks ──
+      const dropdown = this._dom.autocompleteDropdown;
+      if (dropdown) {
+        dropdown.addEventListener('mousedown', (e) => {
+          e.preventDefault(); // prevent blur before click
+          const item = e.target.closest('[data-command]');
+          if (item) {
+            this._autocompleteIndex = parseInt(item.dataset.index, 10);
+            this._autocompleteSelect();
+          }
+        });
+      }
+    }
+
+    // ── Inline cell editing ──────────────────────────────────────
+
+    _startEditing(td) {
+      this._commitActiveEditor();
+      const rowIndex = parseInt(td.dataset.index, 10);
+      const field    = td.dataset.field;
+      const cmd      = this.currentTestCase && this.currentTestCase.commands[rowIndex];
+      if (!cmd) return;
+
+      const span = td.querySelector('.cell-text');
+      if (!span) return;
+
+      // Make span editable
+      span.contentEditable = 'true';
+      span.focus();
+
+      // Move cursor to end
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      this._activeEditor = { rowIndex, field, el: span, originalValue: cmd[field] };
+
+      // Show autocomplete for command field
+      if (field === 'command') {
+        this._showAutocomplete(span.textContent, td);
+      }
+
+      // Key handlers on the span
+      span.addEventListener('keydown', this._onEditorKeydown.bind(this), { once: false });
+      span.addEventListener('input',   () => {
+        if (field === 'command') {
+          this._showAutocomplete(span.textContent, td);
+        }
+      });
+      span.addEventListener('blur',    () => {
+        // Small delay to allow autocomplete click to fire first
+        setTimeout(() => this._commitActiveEditor(), 80);
+      }, { once: true });
+    }
+
+    _onEditorKeydown(e) {
+      if (this._autocompleteVisible) {
+        if (e.key === 'ArrowDown')  { e.preventDefault(); this._autocompleteNavigate(1);  return; }
+        if (e.key === 'ArrowUp')    { e.preventDefault(); this._autocompleteNavigate(-1); return; }
+        if (e.key === 'Enter')      { e.preventDefault(); this._autocompleteSelect();     return; }
+        if (e.key === 'Escape')     { this._hideAutocomplete(); return; }
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this._commitActiveEditor();
+        this._advanceEditorToNext();
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        this._commitActiveEditor();
+        this._advanceEditorToNextField();
+      }
+      if (e.key === 'Escape') {
+        this._commitActiveEditor(true);
+      }
+    }
+
+    _commitActiveEditor(cancel = false) {
+      const ed = this._activeEditor;
+      if (!ed) return;
+      this._activeEditor = null;
+      this._hideAutocomplete();
+
+      ed.el.contentEditable = 'false';
+
+      if (!cancel) {
+        const newValue = ed.el.textContent.trim();
+        if (newValue !== ed.originalValue) {
+          this.updateCommand(ed.rowIndex, ed.field, newValue);
+        }
+      } else {
+        ed.el.textContent = ed.originalValue;
+      }
+    }
+
+    _advanceEditorToNext() {
+      const ed = this._activeEditor;
+      if (!ed || !this.currentTestCase) return;
+      const nextIdx = ed.rowIndex + 1;
+      if (nextIdx < this.currentTestCase.commands.length) {
+        const tr = this._rowByIndex(nextIdx);
+        if (tr) {
+          const td = tr.querySelector(`[data-field="${ed.field}"]`);
+          if (td) this._startEditing(td);
+        }
+      }
+    }
+
+    _advanceEditorToNextField() {
+      const ed = this._activeEditor;
+      if (!ed) return;
+      const fields = ['command', 'target', 'value'];
+      const curIdx = fields.indexOf(ed.field);
+      const nextField = fields[curIdx + 1] || fields[0];
+      const tr = this._rowByIndex(ed.rowIndex);
+      if (tr) {
+        const td = tr.querySelector(`[data-field="${nextField}"]`);
+        if (td) this._startEditing(td);
+      }
     }
 
     _bindArtifactTabs() {
       const tabs = this._dom.artifactTabs;
       if (!tabs) return;
       tabs.addEventListener('click', (e) => {
-        const tab = e.target.closest('[data-artifact-tab]');
-        if (!tab) return;
-        const targetId = tab.dataset.artifactTab;
-        tabs.querySelectorAll('[data-artifact-tab]').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        ['logContainer','variablesContainer','screenshotsContainer','healingContainer'].forEach(k => {
-          if (this._dom[k]) this._dom[k].style.display = 'none';
+        const btn = e.target.closest('[data-tab]');
+        if (!btn) return;
+        const tabId = btn.dataset.tab;
+        tabs.querySelectorAll('[data-tab]').forEach(b =>
+          b.classList.toggle('active', b === btn)
+        );
+        // Show/hide panels
+        ['apanel-log', 'apanel-variables', 'apanel-screenshots', 'apanel-healing', 'apanel-reference']
+          .forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = el.id === tabId ? '' : 'none';
+          });
+      });
+
+      // Healing tab delegate buttons
+      const healingContainer = this._dom.healingContainer;
+      if (healingContainer) {
+        healingContainer.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-action]');
+          if (!btn) return;
+          const index = parseInt(btn.dataset.index, 10);
+          if (btn.dataset.action === 'approve-heal') this.approveHealing(index);
+          if (btn.dataset.action === 'reject-heal')  this.rejectHealing(index);
         });
-        const map = {
-          log:         'logContainer',
-          variables:   'variablesContainer',
-          screenshots: 'screenshotsContainer',
-          healing:     'healingContainer',
-        };
-        const key = map[targetId];
-        if (key && this._dom[key]) this._dom[key].style.display = 'block';
+      }
+    }
+
+    _bindExportDialog() {
+      const d = this._dom;
+      d.btnExportConfirm && d.btnExportConfirm.addEventListener('click', () => this.executeExport());
+      d.btnExportClose   && d.btnExportClose.addEventListener('click',   () => this._closeExportDialog());
+      d.exportFormatSelect && d.exportFormatSelect.addEventListener('change', () => this._updateExportPreview());
+      d.exportScopeSelect  && d.exportScopeSelect.addEventListener('change',  () => this._updateExportPreview());
+    }
+
+    _bindSettingsDialog() {
+      const d = this._dom;
+      d.btnSettingsSave  && d.btnSettingsSave.addEventListener('click',  () => this.saveSettings());
+      d.btnSettingsClose && d.btnSettingsClose.addEventListener('click', () => {
+        if (d.settingsDialog) d.settingsDialog.style.display = 'none';
       });
     }
 
     _bindContextMenu() {
       const tbody = this._dom.commandTbody;
       if (!tbody) return;
+
       tbody.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         const tr = e.target.closest('tr[data-index]');
         if (!tr) return;
         const index = parseInt(tr.dataset.index, 10);
-        if (!this.selectedCommandIndices.includes(index)) this.selectCommand(index);
-        this._showContextMenu(e.clientX, e.clientY);
+        if (!this.selectedCommandIndices.includes(index)) {
+          this.selectCommand(index);
+        }
+        this._showContextMenu(e.clientX, e.clientY, index);
       });
 
       document.addEventListener('click', () => this._hideContextMenu());
     }
 
-    _showContextMenu(x, y) {
-      let menu = document.getElementById('cmd-context-menu');
-      if (!menu) {
-        menu = document.createElement('div');
-        menu.id = 'cmd-context-menu';
-        menu.className = 'context-menu';
-        menu.innerHTML = `
-          <div data-action="add">Add command</div>
-          <div data-action="copy">Copy</div>
-          <div data-action="paste">Paste</div>
-          <div data-action="delete">Delete</div>
-          <div data-action="breakpoint">Toggle breakpoint</div>
-          <hr>
-          <div data-action="duplicate">Duplicate test case</div>
-        `;
-        menu.addEventListener('click', (e) => {
-          const action = e.target.dataset.action;
-          switch (action) {
-            case 'add':        this.addCommand(); break;
-            case 'copy':       this.copyCommands(); break;
-            case 'paste':      this.pasteCommands(); break;
-            case 'delete':     this.deleteCommand(); break;
-            case 'breakpoint': this.toggleBreakpoint(this.selectedCommandIndex); break;
-            case 'duplicate': {
-              if (this.currentSuite && this.currentTestCase)
-                this.duplicateTestCase(this.currentSuite.id, this.currentTestCase.id);
-              break;
-            }
-          }
-          this._hideContextMenu();
-        });
-        document.body.appendChild(menu);
-      }
-      menu.style.display = 'block';
-      menu.style.left    = x + 'px';
-      menu.style.top     = y + 'px';
+    _showContextMenu(x, y, index) {
+      this._hideContextMenu();
+      const menu = document.createElement('div');
+      menu.id = 'cmd-context-menu';
+      menu.className = 'context-menu';
+      menu.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:9999`;
+
+      const multi = this.selectedCommandIndices.length > 1;
+      menu.innerHTML = `
+        <div class="ctx-item" data-ctx="insert-above">Insert above</div>
+        <div class="ctx-item" data-ctx="insert-below">Insert below</div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-item" data-ctx="copy">${multi ? 'Copy selected' : 'Copy'}</div>
+        <div class="ctx-item" data-ctx="paste">Paste</div>
+        <div class="ctx-item" data-ctx="duplicate">Duplicate</div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-item" data-ctx="toggle-bp">Toggle breakpoint</div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-item ctx-danger" data-ctx="delete">${multi ? 'Delete selected' : 'Delete'}</div>
+      `;
+
+      menu.addEventListener('click', (e) => {
+        const item = e.target.closest('[data-ctx]');
+        if (!item) return;
+        this._handleContextAction(item.dataset.ctx, index);
+        this._hideContextMenu();
+      });
+
+      document.body.appendChild(menu);
     }
 
     _hideContextMenu() {
-      const menu = document.getElementById('cmd-context-menu');
-      if (menu) menu.style.display = 'none';
+      const existing = document.getElementById('cmd-context-menu');
+      if (existing) existing.remove();
     }
 
-    // ── Inline Editor ─────────────────────────────────────────
-
-    _openEditor(cell) {
-      this._commitActiveEditor();
-      const field    = cell.dataset.field;
-      const rowIndex = parseInt(cell.dataset.index, 10);
-      const cmd      = this.currentTestCase && this.currentTestCase.commands[rowIndex];
-      if (!cmd) return;
-
-      const input = document.createElement('input');
-      input.type  = 'text';
-      input.value = cmd[field] || '';
-      input.className = 'cell-editor';
-
-      cell.innerHTML = '';
-      cell.appendChild(input);
-      input.focus();
-      input.select();
-
-      this._activeEditor = { rowIndex, field, el: input };
-
-      // Autocomplete on command field
-      if (field === 'command') {
-        input.addEventListener('input', () => {
-          this._showAutocomplete(cell, input.value);
-        });
-      }
-
-      input.addEventListener('blur',  () => this._commitActiveEditor());
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); this._commitActiveEditor(); }
-        if (e.key === 'Tab')   {
-          e.preventDefault();
-          this._commitActiveEditor();
-          this._focusNextCell(cell);
-        }
-        if (e.key === 'Escape') {
-          this._activeEditor = null;
+    _handleContextAction(action, index) {
+      switch (action) {
+        case 'insert-above':  this.insertCommand(index,     '', '', ''); break;
+        case 'insert-below':  this.insertCommand(index + 1, '', '', ''); break;
+        case 'copy':          this.copyCommands(); break;
+        case 'paste':         this.pasteCommands(index); break;
+        case 'duplicate': {
+          const idxs = this.selectedCommandIndices.length > 1
+            ? this.selectedCommandIndices : [index];
+          const copies = idxs.map(i => clone(this.currentTestCase.commands[i]));
+          const insertAt = Math.max(...idxs) + 1;
+          this._snapshotUndo();
+          this.currentTestCase.commands.splice(insertAt, 0, ...copies);
           this._renderCommandTable();
+          this.saveWorkspace();
+          break;
         }
-      });
-    }
-
-    _commitActiveEditor() {
-      const ae = this._activeEditor;
-      if (!ae) return;
-      this._activeEditor = null;
-      const newValue = ae.el.value;
-      this.updateCommand(ae.rowIndex, ae.field, newValue);
-      this._hideAutocomplete();
-    }
-
-    _patchCell(index, field, value) {
-      const tr = this._rowByIndex(index);
-      if (!tr) return;
-      const cell = tr.querySelector(`[data-field="${field}"]`);
-      if (!cell) return;
-
-      // Don't overwrite if it's currently being edited
-      if (cell.querySelector('.cell-editor')) return;
-
-      const span = cell.querySelector('.cell-text');
-      if (span) {
-        span.textContent = value;
-      } else {
-        this._renderCommandTable();
+        case 'toggle-bp':     this.toggleBreakpoint(index); break;
+        case 'delete':        this.deleteCommand(index);    break;
       }
     }
 
-    _focusNextCell(currentCell) {
-      const fields = ['command', 'target', 'value'];
-      const curField = currentCell.dataset.field;
-      const curIdx   = parseInt(currentCell.dataset.index, 10);
-      const fi       = fields.indexOf(curField);
+    // ═══════════════════════════════════════════════════════════
+    // SECTION 20 – Utility Helpers
+    // ═══════════════════════════════════════════════════════════
 
-      let nextField = fields[fi + 1];
-      let nextIndex = curIdx;
-
-      if (!nextField) {
-        nextField = fields[0];
-        nextIndex = curIdx + 1;
-      }
-
-      const nextRow = this._rowByIndex(nextIndex);
-      if (!nextRow) return;
-      const nextCell = nextRow.querySelector(`[data-field="${nextField}"]`);
-      if (nextCell) this._openEditor(nextCell);
+    _showStatus(message, level = 'info') {
+      const bar = this._dom.statusBar;
+      if (!bar) return;
+      bar.textContent = message;
+      bar.className   = `status-bar status-${level}`;
     }
 
-    // ── Extensions tab ────────────────────────────────────────
+    _updateTestCaseTitle() {
+      const el = this._dom.testCaseTitle;
+      if (!el) return;
+      el.textContent = this.currentTestCase
+        ? `${this.currentSuite ? this.currentSuite.name + ' / ' : ''}${this.currentTestCase.name}`
+        : 'No test case selected';
+    }
 
-    _renderExtensionsTab() {
-      const container = this._dom.extensionsTab;
-      if (!container) return;
+    _updateToolbarState() {
+      const d   = this._dom;
+      const has = !!this.currentTestCase;
+      const rec = this.isRecording;
+      const play = this.isPlaying;
 
-      if (!this.extensionScripts.length) {
-        container.innerHTML = '<p class="empty-msg">No extension scripts. Click <strong>+ Add</strong>.</p>';
-        return;
-      }
+      if (d.btnRecord)     { d.btnRecord.textContent  = rec  ? '⏹ Stop Rec' : '⏺ Record'; d.btnRecord.classList.toggle('recording', rec); }
+      if (d.btnPlay)       d.btnPlay.disabled       = !has || play;
+      if (d.btnPlaySuite)  d.btnPlaySuite.disabled  = !this.currentSuite || play;
+      if (d.btnPlayAll)    d.btnPlayAll.disabled    = play;
+      if (d.btnPause)      d.btnPause.disabled      = !play;
+      if (d.btnStop)       d.btnStop.disabled       = !play;
+      if (d.btnStep)       d.btnStep.disabled       = !has || play;
+      if (d.btnAddCmd)     d.btnAddCmd.disabled     = !has || play;
+      if (d.btnDeleteCmd)  d.btnDeleteCmd.disabled  = !has || play;
+      if (d.btnUndo)       d.btnUndo.disabled       = !this.undoStack.length;
+      if (d.btnRedo)       d.btnRedo.disabled       = !this.redoStack.length;
+    }
 
-      container.innerHTML = this.extensionScripts.map((s, i) => `
-        <div class="ext-item" data-id="${s.id}">
-          <div class="ext-header">
-            <span>${esc(s.name)}</span>
-            <button class="btn-ext-delete" data-id="${s.id}">✕</button>
-          </div>
-          <textarea class="ext-code" data-id="${s.id}" rows="4">${esc(s.code)}</textarea>
-        </div>
-      `).join('');
+    _showCommandInDetail(index) {
+      if (!this.currentTestCase) return;
+      const cmd = this.currentTestCase.commands[index];
+      if (!cmd) return;
+      const d = this._dom;
+      if (d.detailCommand) d.detailCommand.textContent = cmd.command;
+      if (d.detailTarget)  d.detailTarget.textContent  = cmd.target;
+      if (d.detailValue)   d.detailValue.textContent   = cmd.value;
+      if (d.detailComment) d.detailComment.textContent = cmd.comment || '';
+    }
 
-      container.querySelectorAll('.btn-ext-delete').forEach(btn => {
-        btn.addEventListener('click', () => {
-          this.extensionScripts = this.extensionScripts.filter(s => s.id !== btn.dataset.id);
-          this._saveExtensionScripts();
-          this._renderExtensionsTab();
-        });
+    _clearDetailPanel() {
+      const d = this._dom;
+      ['detailCommand', 'detailTarget', 'detailValue', 'detailComment'].forEach(k => {
+        if (d[k]) d[k].textContent = '';
       });
-
-      container.querySelectorAll('.ext-code').forEach(ta => {
-        ta.addEventListener('change', () => {
-          const s = this.extensionScripts.find(es => es.id === ta.dataset.id);
-          if (s) { s.code = ta.value; this._saveExtensionScripts(); }
-        });
-      });
     }
 
-    addExtensionScript(name, code) {
-      this.extensionScripts.push({ id: uid(), name: name || 'Script', code: code || '' });
-      this._saveExtensionScripts();
-      this._renderExtensionsTab();
-    }
-
-    // ── Download helper ───────────────────────────────────────
-    _downloadText(text, filename, mimeType) {
-      const blob = new Blob([text], { type: mimeType || 'text/plain' });
+    _downloadText(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType || 'text/plain' });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    }
+
+    _showModal(title, bodyHtml) {
+      let modal = document.getElementById('sf-generic-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'sf-generic-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+          <div class="modal-box">
+            <div class="modal-header">
+              <h2 id="sf-modal-title"></h2>
+              <button id="sf-modal-close" class="modal-close-btn">✕</button>
+            </div>
+            <div id="sf-modal-body" class="modal-body"></div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelector('#sf-modal-close').addEventListener('click', () => {
+          modal.style.display = 'none';
+        });
+      }
+      modal.querySelector('#sf-modal-title').textContent = title;
+      modal.querySelector('#sf-modal-body').innerHTML    = bodyHtml;
+      modal.style.display = 'flex';
+    }
+
+    _suiteById(id) {
+      return this.workspace.suites.find(s => s.id === id) || null;
+    }
+
+    _testCaseById(suiteId, testCaseId) {
+      const suite = this._suiteById(suiteId);
+      return suite ? suite.testCases.find(tc => tc.id === testCaseId) || null : null;
+    }
+
+    _findTestCaseAnywhere(testCaseId) {
+      for (const suite of this.workspace.suites) {
+        const tc = suite.testCases.find(t => t.id === testCaseId);
+        if (tc) return tc;
+      }
+      return null;
+    }
+
+    _setBadge(text, color) {
+      try {
+        chrome.action.setBadgeText({ text });
+        chrome.action.setBadgeBackgroundColor({ color });
+      } catch (e) { /* ignore in non-extension context */ }
+    }
+
+    _clearBadge() {
+      try {
+        chrome.action.setBadgeText({ text: '' });
+      } catch (e) { /* ignore */ }
     }
 
   } // end class SeleniumForgeApp
@@ -2348,14 +2934,11 @@
   // ─────────────────────────────────────────────────────────────
   // Bootstrap
   // ─────────────────────────────────────────────────────────────
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      global.app = new SeleniumForgeApp();
-      global.app.init().catch(console.error);
-    });
-  } else {
+  global.SeleniumForgeApp = SeleniumForgeApp;
+
+  document.addEventListener('DOMContentLoaded', () => {
     global.app = new SeleniumForgeApp();
     global.app.init().catch(console.error);
-  }
+  });
 
 })(window);
