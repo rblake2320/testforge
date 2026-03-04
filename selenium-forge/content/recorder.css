@@ -1,0 +1,337 @@
+/**
+ * SeleniumForge — Content Script Styles: recorder.css
+ * =====================================================
+ * Injected into every page while the extension is active.
+ * Provides:
+ *   1. Red hover border — outlines any element the user mouses over
+ *   2. Green flash animation — confirms that a command was recorded
+ *   3. Recording badge — floating "Recording…" indicator in the top-right corner
+ *
+ * Design goals
+ * ─────────────
+ * • Zero interference with the host page's layout.
+ *   Every rule uses `outline` (not `border`) for highlighting so that box
+ *   model dimensions are never altered and no reflow occurs.
+ * • High z-index for the badge so it renders above virtually any page content.
+ * • CSS custom properties for easy theme-ability / future dark-mode support.
+ * • Animations use `transform` and `opacity` only — GPU-composited, no reflow.
+ * • All selectors are prefixed with `sf-` to avoid collisions with host styles.
+ * • `!important` is used sparingly and only where host styles are likely to
+ *   override values critical to the extension UX.
+ */
+
+/* ===========================================================================
+   Custom Properties (design tokens)
+   =========================================================================== */
+
+:root {
+  /* Hover outline */
+  --sf-hover-color:        #e53e3e;   /* bright red — unmistakable */
+  --sf-hover-width:        2px;
+  --sf-hover-offset:       2px;       /* outline-offset: keeps outline outside element */
+
+  /* Flash (recorded confirmation) */
+  --sf-flash-color:        #38a169;   /* green */
+  --sf-flash-duration:     420ms;
+  --sf-flash-opacity:      0.35;      /* overlay opacity at peak */
+
+  /* Badge */
+  --sf-badge-bg:           rgba(220, 38, 38, 0.92);   /* red-600 at 92% */
+  --sf-badge-text:         #ffffff;
+  --sf-badge-font:         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                           'Helvetica Neue', Arial, sans-serif;
+  --sf-badge-font-size:    12px;
+  --sf-badge-font-weight:  600;
+  --sf-badge-line-height:  1;
+  --sf-badge-padding:      6px 10px;
+  --sf-badge-radius:       5px;
+  --sf-badge-shadow:       0 2px 8px rgba(0, 0, 0, 0.30),
+                           0 1px 3px rgba(0, 0, 0, 0.20);
+  --sf-badge-z-index:      2147483647;   /* max 32-bit signed int */
+  --sf-badge-inset-top:    12px;
+  --sf-badge-inset-right:  12px;
+
+  /* Pulse dot inside badge */
+  --sf-dot-size:           7px;
+  --sf-dot-color:          #fed7d7;   /* light red — contrasts against badge bg */
+  --sf-dot-pulse-duration: 1.4s;
+}
+
+/* ===========================================================================
+   1. Hover Highlight
+   =========================================================================== */
+
+/**
+ * .sf-hover is added to the element currently under the mouse pointer while
+ * recording is active. Uses `outline` so the host page's box model is not
+ * affected and no reflow is triggered.
+ *
+ * The `pointer-events: none` rule on the outline pseudolayer is irrelevant
+ * here (outlines don't receive pointer events by default), but we use a
+ * `box-shadow` ring as a fallback for elements that clip their overflow
+ * (e.g. a <canvas> or an element with overflow:hidden + border-radius).
+ */
+.sf-hover {
+  outline:        var(--sf-hover-width) solid var(--sf-hover-color) !important;
+  outline-offset: var(--sf-hover-offset) !important;
+
+  /* Secondary ring via box-shadow for clipping contexts */
+  box-shadow:     0 0 0 calc(var(--sf-hover-width) + var(--sf-hover-offset))
+                  rgba(229, 62, 62, 0.25) !important;
+
+  /* Smooth appearance when quickly mousing from element to element */
+  transition:     outline-color 80ms ease,
+                  box-shadow    80ms ease !important;
+
+  /* Never steal cursor from host page UI */
+  cursor:         inherit !important;
+}
+
+/* Don't highlight the badge itself */
+#sf-recording-badge.sf-hover {
+  outline: none !important;
+  box-shadow: var(--sf-badge-shadow) !important;
+}
+
+/* ===========================================================================
+   2. Green Flash (recorded confirmation)
+   =========================================================================== */
+
+/**
+ * .sf-flash is added immediately after a command is emitted, then removed
+ * when the `animationend` event fires.
+ *
+ * Implementation: a CSS animation that uses a pseudo-element overlay so that
+ * the element's own styles are never mutated. The overlay is
+ * `pointer-events: none` and `position: fixed` relative to the element via
+ * the `inset` trick, ensuring it covers exactly the element's bounding box.
+ *
+ * Why a ::before pseudo-element:
+ *   • We cannot reliably inject a wrapper around arbitrary host-page elements.
+ *   • Mutating `background-color` would conflict with the host page's styles
+ *     and potentially confuse React/Vue state.
+ *   • A pseudo-element is the cleanest "zero-footprint" overlay.
+ *
+ * Note: if the element has `overflow: hidden`, the pseudo-element is clipped
+ * to the same shape — which is actually the desired behaviour.
+ */
+.sf-flash {
+  /* Ensure the pseudo-element is positioned relative to this element */
+  position: relative !important;
+}
+
+.sf-flash::before {
+  content:          '' !important;
+  position:         absolute !important;
+  inset:            0 !important;   /* cover the full element */
+  background-color: var(--sf-flash-color) !important;
+  border-radius:    inherit !important;
+  pointer-events:   none !important;
+  z-index:          calc(var(--sf-badge-z-index) - 1) !important;
+
+  /* Start at peak opacity, fade to transparent */
+  animation: sf-flash-fade var(--sf-flash-duration) cubic-bezier(0.4, 0, 0.6, 1) forwards !important;
+}
+
+@keyframes sf-flash-fade {
+  0%   { opacity: var(--sf-flash-opacity); }
+  100% { opacity: 0; }
+}
+
+/* ===========================================================================
+   3. Recording Badge
+   =========================================================================== */
+
+/**
+ * #sf-recording-badge is a <div> appended to <body> when recording starts
+ * and removed when recording stops. It is positioned `fixed` so it stays
+ * in the viewport even when the user scrolls.
+ *
+ * The badge is aria-hidden because it is a decorative indicator for
+ * extension users, not meaningful content for the host page's assistive tree.
+ */
+#sf-recording-badge {
+  /* Positioning — top-right corner */
+  position:   fixed !important;
+  top:        var(--sf-badge-inset-top)   !important;
+  right:      var(--sf-badge-inset-right) !important;
+  z-index:    var(--sf-badge-z-index)     !important;
+
+  /* Layout */
+  display:        flex         !important;
+  align-items:    center       !important;
+  gap:            6px          !important;
+  padding:        var(--sf-badge-padding) !important;
+  border-radius:  var(--sf-badge-radius)  !important;
+
+  /* Visual */
+  background:     var(--sf-badge-bg)   !important;
+  color:          var(--sf-badge-text) !important;
+  box-shadow:     var(--sf-badge-shadow) !important;
+
+  /* Typography */
+  font-family:    var(--sf-badge-font)        !important;
+  font-size:      var(--sf-badge-font-size)   !important;
+  font-weight:    var(--sf-badge-font-weight) !important;
+  line-height:    var(--sf-badge-line-height) !important;
+  letter-spacing: 0.02em !important;
+  white-space:    nowrap !important;
+
+  /* Don't interfere with page interaction */
+  pointer-events: none !important;
+  user-select:    none !important;
+
+  /* Entrance animation */
+  animation: sf-badge-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
+
+  /* Prevent host page resets */
+  box-sizing:     border-box !important;
+  margin:         0 !important;
+  border:         none !important;
+  text-transform: none !important;
+  text-decoration: none !important;
+}
+
+/* Entrance — slides down from just above the viewport edge */
+@keyframes sf-badge-in {
+  from {
+    opacity:   0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity:   1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Pulsing "recording" dot ─────────────────────────────────────────────── */
+
+/**
+ * A small circle that breathes in and out to signal active recording.
+ * Implemented via ::before pseudo-element on the badge div.
+ */
+#sf-recording-badge::before {
+  content:          '' !important;
+  display:          inline-block !important;
+  width:            var(--sf-dot-size)   !important;
+  height:           var(--sf-dot-size)   !important;
+  border-radius:    50%  !important;
+  background-color: var(--sf-dot-color) !important;
+  flex-shrink:      0    !important;
+
+  animation:
+    sf-dot-pulse var(--sf-dot-pulse-duration) ease-in-out infinite !important;
+}
+
+@keyframes sf-dot-pulse {
+  0%, 100% {
+    opacity:   1;
+    transform: scale(1);
+  }
+  50% {
+    opacity:   0.45;
+    transform: scale(0.72);
+  }
+}
+
+/* ===========================================================================
+   4. Playback Highlight
+   =========================================================================== */
+
+/**
+ * .sf-playback-target is added by the playback engine to the element
+ * currently being acted on. Provides a visual "this is being clicked" cue
+ * distinct from the recording hover (blue vs. red).
+ */
+.sf-playback-target {
+  outline:        2px solid #3182ce !important;   /* blue-600 */
+  outline-offset: 2px !important;
+  box-shadow:     0 0 0 4px rgba(49, 130, 206, 0.22) !important;
+  transition:     outline-color 80ms ease, box-shadow 80ms ease !important;
+}
+
+/* ===========================================================================
+   5. Playback Status Badge
+   =========================================================================== */
+
+/**
+ * #sf-playback-badge mirrors the recording badge but is shown during
+ * automated test playback. The panel adds/removes it via SF_PLAY_ALL flow.
+ */
+#sf-playback-badge {
+  position:       fixed !important;
+  top:            var(--sf-badge-inset-top)   !important;
+  right:          var(--sf-badge-inset-right) !important;
+  z-index:        var(--sf-badge-z-index)     !important;
+
+  display:        flex       !important;
+  align-items:    center     !important;
+  gap:            6px        !important;
+  padding:        6px 10px   !important;
+  border-radius:  5px        !important;
+
+  background:     rgba(49, 130, 206, 0.92) !important;  /* blue */
+  color:          #fff !important;
+  box-shadow:     var(--sf-badge-shadow) !important;
+
+  font-family:    var(--sf-badge-font)        !important;
+  font-size:      var(--sf-badge-font-size)   !important;
+  font-weight:    var(--sf-badge-font-weight) !important;
+  line-height:    var(--sf-badge-line-height) !important;
+  letter-spacing: 0.02em !important;
+  white-space:    nowrap !important;
+
+  pointer-events: none !important;
+  user-select:    none !important;
+  box-sizing:     border-box !important;
+  margin:         0 !important;
+  border:         none !important;
+
+  animation: sf-badge-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+/* ===========================================================================
+   6. Reduced-Motion Overrides
+   =========================================================================== */
+
+/**
+ * Respect users' OS-level preference to reduce motion.
+ * Animations are disabled; outlines and badge remain visible.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .sf-flash::before {
+    animation: none !important;
+    opacity:   0    !important;   /* Skip the flash entirely */
+  }
+
+  #sf-recording-badge {
+    animation: none !important;
+  }
+
+  #sf-recording-badge::before {
+    animation: none !important;  /* Freeze the pulsing dot */
+    opacity:   1    !important;
+  }
+
+  #sf-playback-badge {
+    animation: none !important;
+  }
+}
+
+/* ===========================================================================
+   7. Dark-Mode Adjustments
+   =========================================================================== */
+
+/**
+ * On dark-mode pages the default red badge colour is already high-contrast,
+ * but we nudge the shadow and dot colour slightly for better readability.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sf-badge-bg:       rgba(220, 38, 38, 0.95);
+    --sf-badge-shadow:   0 2px 10px rgba(0, 0, 0, 0.55),
+                         0 1px 4px  rgba(0, 0, 0, 0.40);
+    --sf-dot-color:      #feb2b2;    /* slightly warmer on dark backgrounds */
+    --sf-flash-opacity:  0.28;       /* less saturated flash on dark pages */
+  }
+}

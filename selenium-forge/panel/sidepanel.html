@@ -1,0 +1,2294 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SeleniumForge</title>
+  <style>
+    /* ─── CSS Custom Properties ─────────────────────────────────────────────── */
+    :root {
+      --color-bg:           #f5f6f8;
+      --color-surface:      #ffffff;
+      --color-surface-2:    #f0f1f4;
+      --color-surface-3:    #e4e6eb;
+      --color-border:       #d1d5db;
+      --color-border-soft:  #e8eaed;
+      --color-text:         #111827;
+      --color-text-2:       #374151;
+      --color-text-3:       #6b7280;
+      --color-text-4:       #9ca3af;
+      --color-accent:       #2563eb;
+      --color-accent-hover: #1d4ed8;
+      --color-accent-soft:  #eff6ff;
+      --color-accent-text:  #1e40af;
+      --color-red:          #dc2626;
+      --color-red-soft:     #fef2f2;
+      --color-green:        #16a34a;
+      --color-green-soft:   #f0fdf4;
+      --color-yellow:       #d97706;
+      --color-yellow-soft:  #fffbeb;
+      --color-orange:       #ea580c;
+      --color-orange-soft:  #fff7ed;
+      --color-purple:       #7c3aed;
+      --color-purple-soft:  #f5f3ff;
+      --color-toolbar-bg:   #1e2433;
+      --color-toolbar-text: #e5e7eb;
+      --color-toolbar-border: #2d3548;
+      --color-toolbar-btn:  #2d3548;
+      --color-toolbar-btn-hover: #374162;
+      --color-toolbar-icon: #9ca3af;
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+
+      --text-xs:  11px;
+      --text-sm:  12px;
+      --text-base: 13px;
+      --text-md:  14px;
+
+      --radius-sm: 3px;
+      --radius:    5px;
+      --radius-md: 7px;
+
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.07);
+      --shadow:    0 2px 8px rgba(0,0,0,0.10);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.14);
+
+      --sidebar-width: 220px;
+      --artifacts-height: 180px;
+      --toolbar-height: 40px;
+    }
+
+    [data-theme="dark"] {
+      --color-bg:           #0f1117;
+      --color-surface:      #1a1d27;
+      --color-surface-2:    #222534;
+      --color-surface-3:    #2a2f42;
+      --color-border:       #2d3548;
+      --color-border-soft:  #222535;
+      --color-text:         #e5e7eb;
+      --color-text-2:       #d1d5db;
+      --color-text-3:       #9ca3af;
+      --color-text-4:       #6b7280;
+      --color-accent:       #3b82f6;
+      --color-accent-hover: #60a5fa;
+      --color-accent-soft:  #1e2d4a;
+      --color-accent-text:  #93c5fd;
+      --color-red:          #f87171;
+      --color-red-soft:     #2d1515;
+      --color-green:        #4ade80;
+      --color-green-soft:   #0f2d1a;
+      --color-yellow:       #fbbf24;
+      --color-yellow-soft:  #2d2310;
+      --color-orange:       #fb923c;
+      --color-orange-soft:  #2d1a0c;
+      --color-toolbar-bg:   #11141f;
+      --color-toolbar-text: #e5e7eb;
+      --color-toolbar-border: #1f2538;
+      --color-toolbar-btn:  #1f2538;
+      --color-toolbar-btn-hover: #28304a;
+      --color-toolbar-icon: #6b7280;
+    }
+
+    /* ─── Reset & Base ──────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-sans);
+      font-size: var(--text-base);
+      color: var(--color-text);
+      background: var(--color-bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    input, select, textarea {
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 2px rgba(37,99,235,0.12);
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--color-text-4); }
+
+    /* ─── App Layout ────────────────────────────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── Toolbar ───────────────────────────────────────────────────────────── */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 8px;
+      height: var(--toolbar-height);
+      background: var(--color-toolbar-bg);
+      border-bottom: 1px solid var(--color-toolbar-border);
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .tb-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--color-toolbar-icon);
+      transition: background 120ms, color 120ms;
+      position: relative;
+    }
+    .tb-btn:hover {
+      background: var(--color-toolbar-btn-hover);
+      color: var(--color-toolbar-text);
+    }
+    .tb-btn.active {
+      background: rgba(220,38,38,0.2);
+      color: #f87171;
+    }
+    .tb-btn.active-green {
+      background: rgba(22,163,74,0.2);
+      color: #4ade80;
+    }
+    .tb-btn svg { pointer-events: none; }
+
+    .tb-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--color-toolbar-border);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .tb-speed {
+      height: 24px;
+      padding: 0 6px;
+      background: var(--color-toolbar-btn);
+      border: 1px solid var(--color-toolbar-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-toolbar-text);
+      font-size: var(--text-xs);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' stroke='%236b7280' stroke-width='1.2' fill='none'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 4px center;
+      padding-right: 18px;
+    }
+    .tb-speed:focus { outline: none; border-color: var(--color-accent); }
+
+    .tb-logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      color: var(--color-toolbar-text);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      opacity: 0.7;
+    }
+    .tb-logo svg { color: var(--color-accent); }
+
+    /* Tooltip */
+    .tb-btn[title]:hover::after {
+      content: attr(title);
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a2e;
+      color: #e5e7eb;
+      font-size: var(--text-xs);
+      padding: 3px 7px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 9999;
+      box-shadow: var(--shadow);
+    }
+
+    /* ─── Main Body ─────────────────────────────────────────────────────────── */
+    #main-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ─── Resize Handle ─────────────────────────────────────────────────────── */
+    .resize-handle-h {
+      width: 4px;
+      background: var(--color-border-soft);
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background 120ms;
+      position: relative;
+    }
+    .resize-handle-h:hover, .resize-handle-h.dragging {
+      background: var(--color-accent);
+    }
+    .resize-handle-v {
+      height: 4px;
+      background: var(--color-border-soft);
+      cursor: row-resize;
+      flex-shrink: 0;
+      transition: background 120ms;
+    }
+    .resize-handle-v:hover, .resize-handle-v.dragging {
+      background: var(--color-accent);
+    }
+
+    /* ─── Workspace Sidebar ─────────────────────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-width);
+      min-width: 160px;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-surface);
+      border-right: 1px solid var(--color-border);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border);
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .sidebar-tabs::-webkit-scrollbar { height: 0; }
+
+    .sidebar-tab {
+      padding: 7px 9px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-3);
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color 120ms, border-color 120ms;
+      flex-shrink: 0;
+    }
+    .sidebar-tab:hover { color: var(--color-text-2); }
+    .sidebar-tab.active {
+      color: var(--color-accent);
+      border-bottom-color: var(--color-accent);
+      background: var(--color-surface);
+    }
+
+    .sidebar-panel {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+    .sidebar-panel.active { display: flex; }
+
+    /* Sidebar toolbar */
+    .sidebar-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--color-border-soft);
+      background: var(--color-surface);
+    }
+    .sidebar-toolbar span {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex: 1;
+    }
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: var(--radius-sm);
+      color: var(--color-text-3);
+      transition: background 120ms, color 120ms;
+    }
+    .icon-btn:hover {
+      background: var(--color-surface-3);
+      color: var(--color-text);
+    }
+
+    .sidebar-tree {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+
+    /* Tree nodes */
+    .tree-suite {
+      user-select: none;
+    }
+    .tree-suite-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      cursor: pointer;
+      border-radius: 0;
+      transition: background 100ms;
+      font-size: var(--text-sm);
+      font-weight: 500;
+    }
+    .tree-suite-header:hover { background: var(--color-surface-2); }
+    .tree-suite-header.selected { background: var(--color-accent-soft); color: var(--color-accent-text); }
+
+    .tree-suite-icon { color: var(--color-yellow); flex-shrink: 0; }
+    .tree-arrow { color: var(--color-text-4); flex-shrink: 0; transition: transform 120ms; }
+    .tree-arrow.open { transform: rotate(90deg); }
+    .tree-suite-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-suite-count {
+      font-size: var(--text-xs);
+      color: var(--color-text-4);
+      background: var(--color-surface-3);
+      padding: 0 5px;
+      border-radius: 10px;
+      line-height: 16px;
+    }
+    .tree-suite-status { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .tree-suite-status.pass { background: var(--color-green); }
+    .tree-suite-status.fail { background: var(--color-red); }
+    .tree-suite-status.none { background: var(--color-border); }
+
+    .tree-cases {
+      display: none;
+    }
+    .tree-cases.open { display: block; }
+
+    .tree-case {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px 3px 26px;
+      cursor: pointer;
+      font-size: var(--text-sm);
+      transition: background 100ms;
+    }
+    .tree-case:hover { background: var(--color-surface-2); }
+    .tree-case.selected { background: var(--color-accent-soft); color: var(--color-accent-text); }
+    .tree-case-icon { color: var(--color-accent); flex-shrink: 0; }
+    .tree-case-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-case-status { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .tree-case-status.pass { background: var(--color-green); }
+    .tree-case-status.fail { background: var(--color-red); }
+    .tree-case-status.none { background: var(--color-border); }
+
+    .sidebar-bottom {
+      display: flex;
+      gap: 4px;
+      padding: 6px 8px;
+      border-top: 1px solid var(--color-border);
+      background: var(--color-surface);
+    }
+    .sidebar-bottom-btn {
+      flex: 1;
+      height: 26px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text-2);
+      transition: background 120ms, border-color 120ms;
+    }
+    .sidebar-bottom-btn:hover {
+      background: var(--color-surface-2);
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    /* Dynamic suites tab */
+    .tag-filter-area {
+      padding: 8px;
+      border-bottom: 1px solid var(--color-border-soft);
+    }
+    .tag-filter-area label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .tag-filter-input {
+      width: 100%;
+      padding: 4px 8px;
+      font-size: var(--text-sm);
+      border-radius: var(--radius-sm);
+    }
+    .tag-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 6px 8px;
+    }
+    .tag-chip {
+      padding: 2px 8px;
+      font-size: var(--text-xs);
+      background: var(--color-accent-soft);
+      color: var(--color-accent-text);
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .tag-chip:hover { border-color: var(--color-accent); }
+
+    /* Data tab */
+    .data-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+    .data-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: var(--text-sm);
+      transition: background 100ms;
+    }
+    .data-item:hover { background: var(--color-surface-2); }
+    .data-item-icon { color: var(--color-text-3); flex-shrink: 0; }
+    .data-item-name { flex: 1; font-weight: 500; }
+    .data-item-rows { font-size: var(--text-xs); color: var(--color-text-4); }
+
+    /* Profiles tab */
+    .profile-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+    .profile-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: var(--text-sm);
+      transition: background 100ms;
+    }
+    .profile-item:hover { background: var(--color-surface-2); }
+    .profile-item.active .profile-name { color: var(--color-accent); font-weight: 600; }
+    .profile-active-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--color-green); flex-shrink: 0;
+    }
+    .profile-active-dot.inactive { background: var(--color-border); }
+
+    /* Extensions tab */
+    .ext-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+    .ext-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: var(--text-sm);
+      transition: background 100ms;
+    }
+    .ext-item:hover { background: var(--color-surface-2); }
+
+    /* ─── Center Column ──────────────────────────────────────────────────────── */
+    #center-col {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ─── Test Case Editor ──────────────────────────────────────────────────── */
+    #editor-section {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+      background: var(--color-surface);
+    }
+
+    .editor-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .editor-tc-name {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-text);
+      flex: 1;
+    }
+    .editor-tc-name span {
+      color: var(--color-text-3);
+      font-weight: 400;
+    }
+    .editor-meta {
+      font-size: var(--text-xs);
+      color: var(--color-text-4);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+    }
+    .badge-idle { background: var(--color-surface-3); color: var(--color-text-3); }
+    .badge-recording { background: rgba(220,38,38,0.12); color: var(--color-red); }
+    .badge-playing { background: rgba(22,163,74,0.12); color: var(--color-green); }
+
+    /* Command table */
+    .cmd-table-wrap {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+    }
+
+    .cmd-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      table-layout: fixed;
+    }
+
+    .cmd-table thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--color-surface-2);
+    }
+    .cmd-table thead th {
+      padding: 5px 8px;
+      text-align: left;
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-3);
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+      user-select: none;
+    }
+    .cmd-table thead th:first-child { width: 32px; text-align: center; }
+    .cmd-table thead th:nth-child(2) { width: 30%; }
+    .cmd-table thead th:nth-child(3) { width: 35%; }
+    .cmd-table thead th:nth-child(4) { width: auto; }
+
+    .cmd-row {
+      cursor: pointer;
+      transition: background 80ms;
+    }
+    .cmd-row:hover td { background: var(--color-surface-2); }
+    .cmd-row.selected td { background: var(--color-accent-soft) !important; }
+    .cmd-row.row-pass td { background: rgba(22,163,74,0.06); }
+    .cmd-row.row-fail td { background: rgba(220,38,38,0.07); }
+    .cmd-row.row-executing td { background: rgba(217,119,6,0.10); }
+    .cmd-row.row-skipped td { background: var(--color-surface-3); opacity: 0.6; }
+    .cmd-row.row-comment td { color: var(--color-text-3); font-style: italic; }
+    .cmd-row.has-breakpoint .cmd-row-num::after {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--color-red);
+    }
+
+    .cmd-row td {
+      padding: 3px 8px;
+      border-bottom: 1px solid var(--color-border-soft);
+      vertical-align: middle;
+      background: var(--color-surface);
+    }
+    .cmd-row td:first-child {
+      text-align: center;
+      color: var(--color-text-4);
+      position: relative;
+      padding: 3px 4px;
+      width: 32px;
+    }
+    .cmd-row-num { font-family: var(--font-sans); font-size: 10px; }
+
+    .cmd-row-status {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .cmd-row-status.pass { background: var(--color-green); }
+    .cmd-row-status.fail { background: var(--color-red); }
+    .cmd-row-status.exec {
+      background: var(--color-yellow);
+      animation: pulse 0.8s infinite alternate;
+    }
+    @keyframes pulse { from { opacity: 1; } to { opacity: 0.3; } }
+
+    .cmd-cell-edit {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text);
+      padding: 0;
+      outline: none;
+    }
+    .cmd-cell-edit:focus {
+      background: var(--color-accent-soft);
+      outline: 1px solid var(--color-accent);
+      border-radius: 2px;
+      padding: 1px 3px;
+    }
+
+    .cmd-command { color: #7c3aed; font-weight: 500; }
+    .cmd-target  { color: #0369a1; }
+    .cmd-value   { color: #15803d; }
+
+    /* Detail row */
+    .cmd-detail {
+      padding: 8px 10px;
+      background: var(--color-surface-2);
+      border-top: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .cmd-detail-grid {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 4px 8px;
+      align-items: center;
+    }
+    .cmd-detail-label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-3);
+      text-align: right;
+    }
+    .cmd-detail-input {
+      width: 100%;
+      padding: 3px 7px;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      border-radius: var(--radius-sm);
+    }
+    .cmd-detail-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 5px;
+    }
+    .cmd-detail-btn {
+      padding: 3px 10px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-2);
+      transition: 120ms;
+    }
+    .cmd-detail-btn:hover {
+      background: var(--color-surface-3);
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    .cmd-detail-btn.primary {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
+    }
+    .cmd-detail-btn.primary:hover { background: var(--color-accent-hover); }
+
+    /* ─── Artifacts Panel ───────────────────────────────────────────────────── */
+    #artifacts {
+      height: var(--artifacts-height);
+      min-height: 100px;
+      max-height: 60vh;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .artifacts-tabs {
+      display: flex;
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .artifacts-tab {
+      padding: 5px 12px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-3);
+      border-bottom: 2px solid transparent;
+      transition: color 120ms, border-color 120ms;
+      white-space: nowrap;
+    }
+    .artifacts-tab:hover { color: var(--color-text-2); }
+    .artifacts-tab.active {
+      color: var(--color-accent);
+      border-bottom-color: var(--color-accent);
+      background: var(--color-surface);
+    }
+    .artifacts-tab .tab-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      font-size: 9px;
+      background: var(--color-red);
+      color: white;
+      margin-left: 4px;
+      font-weight: 700;
+    }
+
+    .artifacts-content { flex: 1; overflow: hidden; }
+    .artifacts-panel {
+      display: none;
+      height: 100%;
+      overflow-y: auto;
+      flex-direction: column;
+    }
+    .artifacts-panel.active { display: flex; }
+
+    /* Log tab */
+    .log-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border-soft);
+      flex-shrink: 0;
+    }
+    .log-filter {
+      display: flex;
+      gap: 2px;
+    }
+    .log-filter-btn {
+      padding: 1px 7px;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 10px;
+      background: var(--color-surface-3);
+      color: var(--color-text-3);
+      transition: 120ms;
+    }
+    .log-filter-btn:hover, .log-filter-btn.active { color: white; }
+    .log-filter-btn.f-all.active    { background: var(--color-text-3); }
+    .log-filter-btn.f-pass.active   { background: var(--color-green); }
+    .log-filter-btn.f-fail.active   { background: var(--color-red); }
+    .log-filter-btn.f-info.active   { background: var(--color-accent); }
+    .log-filter-btn.f-warn.active   { background: var(--color-orange); }
+
+    .log-entries {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .log-entry {
+      display: grid;
+      grid-template-columns: 70px 44px 1fr;
+      gap: 0 8px;
+      padding: 2px 8px;
+      line-height: 1.5;
+    }
+    .log-entry:hover { background: var(--color-surface-2); }
+    .log-ts { color: var(--color-text-4); white-space: nowrap; }
+    .log-level { font-weight: 700; text-align: center; border-radius: 2px; }
+    .log-level.PASS { color: var(--color-green); }
+    .log-level.FAIL { color: var(--color-red); }
+    .log-level.INFO { color: var(--color-accent); }
+    .log-level.WARN { color: var(--color-orange); }
+    .log-level.ERROR { color: var(--color-red); }
+    .log-msg { color: var(--color-text); word-break: break-all; }
+
+    /* Screenshots tab */
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+      padding: 8px;
+    }
+    .screenshot-thumb {
+      aspect-ratio: 16/10;
+      background: var(--color-surface-3);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 120ms;
+    }
+    .screenshot-thumb:hover { border-color: var(--color-accent); }
+    .screenshot-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .screenshot-empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--color-text-4);
+      font-size: var(--text-xs);
+    }
+
+    /* Reference tab */
+    .ref-content {
+      padding: 10px 12px;
+      font-size: var(--text-sm);
+    }
+    .ref-cmd-name {
+      font-family: var(--font-mono);
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--color-purple);
+      margin-bottom: 6px;
+    }
+    .ref-desc { color: var(--color-text-2); line-height: 1.5; margin-bottom: 8px; }
+    .ref-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 10px;
+      font-size: var(--text-xs);
+    }
+    .ref-grid dt { color: var(--color-text-3); font-weight: 600; }
+    .ref-grid dd { color: var(--color-text); font-family: var(--font-mono); }
+    .ref-example {
+      margin-top: 8px;
+      padding: 6px 8px;
+      background: var(--color-surface-2);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-text-2);
+    }
+    .ref-example-label {
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    /* Variables tab */
+    .var-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
+    .var-table thead th {
+      padding: 5px 10px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--color-text-3);
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border);
+      position: sticky;
+      top: 0;
+    }
+    .var-table td {
+      padding: 3px 10px;
+      border-bottom: 1px solid var(--color-border-soft);
+      font-family: var(--font-mono);
+    }
+    .var-table td:first-child { color: var(--color-purple); font-weight: 500; }
+    .var-table td:last-child { color: var(--color-green); }
+    .var-table tr:hover td { background: var(--color-surface-2); }
+
+    /* Self-Healing tab */
+    .heal-list { padding: 6px 8px; display: flex; flex-direction: column; gap: 6px; }
+    .heal-item {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 7px 9px;
+      background: var(--color-surface);
+    }
+    .heal-item-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 5px;
+      font-size: var(--text-xs);
+    }
+    .heal-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: var(--color-yellow-soft);
+      color: var(--color-yellow);
+    }
+    .heal-cmd { font-family: var(--font-mono); font-weight: 600; color: var(--color-purple); }
+    .heal-locators {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 4px;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      margin-bottom: 6px;
+    }
+    .heal-original { color: var(--color-red); background: var(--color-red-soft); padding: 2px 5px; border-radius: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .heal-arrow { text-align: center; color: var(--color-text-4); }
+    .heal-suggested { color: var(--color-green); background: var(--color-green-soft); padding: 2px 5px; border-radius: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .heal-actions { display: flex; gap: 5px; }
+    .heal-approve {
+      padding: 2px 10px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      background: var(--color-green-soft);
+      color: var(--color-green);
+      border: 1px solid rgba(22,163,74,0.2);
+      transition: 120ms;
+    }
+    .heal-approve:hover { background: var(--color-green); color: white; }
+    .heal-reject {
+      padding: 2px 10px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      background: var(--color-red-soft);
+      color: var(--color-red);
+      border: 1px solid rgba(220,38,38,0.2);
+      transition: 120ms;
+    }
+    .heal-reject:hover { background: var(--color-red); color: white; }
+
+    /* ─── Context Menu ────────────────────────────────────────────────────────────── */
+    #context-menu {
+      position: fixed;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      padding: 4px 0;
+      min-width: 180px;
+      z-index: 10000;
+      display: none;
+      animation: ctx-in 80ms ease-out;
+    }
+    @keyframes ctx-in {
+      from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    #context-menu.visible { display: block; }
+
+    .ctx-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      font-size: var(--text-sm);
+      color: var(--color-text-2);
+      cursor: pointer;
+      transition: background 80ms;
+    }
+    .ctx-item:hover { background: var(--color-accent-soft); color: var(--color-accent); }
+    .ctx-item.danger:hover { background: var(--color-red-soft); color: var(--color-red); }
+    .ctx-sep { height: 1px; background: var(--color-border-soft); margin: 3px 0; }
+    .ctx-shortcut { margin-left: auto; font-size: 10px; color: var(--color-text-4); }
+
+    /* ─── Export Modal ────────────────────────────────────────────────────────────── */
+    #export-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      z-index: 9000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    #export-overlay.visible { display: flex; }
+
+    #export-modal {
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      width: 90vw;
+      max-width: 700px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--color-border);
+      animation: modal-in 150ms cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes modal-in {
+      from { opacity: 0; transform: scale(0.95) translateY(8px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .modal-title {
+      font-size: var(--text-md);
+      font-weight: 700;
+      color: var(--color-text);
+      flex: 1;
+    }
+    .modal-close {
+      width: 26px;
+      height: 26px;
+      border-radius: var(--radius-sm);
+      color: var(--color-text-3);
+      transition: 120ms;
+    }
+    .modal-close:hover { background: var(--color-surface-3); color: var(--color-text); }
+
+    .modal-body {
+      display: flex;
+      gap: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .export-left {
+      width: 200px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .export-left-title {
+      padding: 8px 10px;
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .export-format-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .export-format-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: var(--text-sm);
+      transition: background 100ms;
+    }
+    .export-format-item:hover { background: var(--color-surface-2); }
+    .export-format-item.selected { background: var(--color-accent-soft); color: var(--color-accent-text); }
+    .export-format-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-sm);
+      background: var(--color-surface-3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+    .export-format-info { flex: 1; }
+    .export-format-name { font-weight: 500; }
+    .export-format-sub { font-size: 10px; color: var(--color-text-4); margin-top: 1px; }
+
+    .export-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .export-right-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .export-right-title {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex: 1;
+    }
+    .export-preview {
+      flex: 1;
+      overflow: auto;
+      padding: 10px;
+    }
+    .export-code {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      line-height: 1.6;
+      color: var(--color-text-2);
+      white-space: pre;
+      background: var(--color-surface-2);
+      border-radius: var(--radius);
+      padding: 12px;
+      min-height: 100px;
+    }
+
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-top: 1px solid var(--color-border);
+      background: var(--color-surface-2);
+    }
+    .modal-footer-info {
+      flex: 1;
+      font-size: var(--text-xs);
+      color: var(--color-text-3);
+    }
+    .btn {
+      padding: 5px 14px;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      border-radius: var(--radius);
+      transition: 120ms;
+      border: 1px solid transparent;
+    }
+    .btn-secondary {
+      background: var(--color-surface);
+      border-color: var(--color-border);
+      color: var(--color-text-2);
+    }
+    .btn-secondary:hover {
+      background: var(--color-surface-3);
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    .btn-primary {
+      background: var(--color-accent);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--color-accent-hover); }
+
+    /* ─── Settings Modal ──────────────────────────────────────────────────────── */
+    #settings-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      z-index: 9000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    #settings-overlay.visible { display: flex; }
+
+    #settings-modal {
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      width: 400px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--color-border);
+      animation: modal-in 150ms cubic-bezier(0.16,1,0.3,1);
+    }
+    .settings-section {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-border-soft);
+    }
+    .settings-section-title {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      color: var(--color-text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 0;
+    }
+    .settings-label {
+      flex: 1;
+      font-size: var(--text-sm);
+      color: var(--color-text-2);
+    }
+    .settings-sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-4);
+    }
+
+    /* Toggle switch */
+    .toggle {
+      width: 32px;
+      height: 18px;
+      border-radius: 9px;
+      background: var(--color-border);
+      position: relative;
+      cursor: pointer;
+      transition: background 150ms;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: var(--color-accent); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: white;
+      transition: left 150ms cubic-bezier(0.16,1,0.3,1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle.on::after { left: 16px; }
+
+    /* ─── Locator Suggestions ───────────────────────────────────────────────────── */
+    .suggest-dropdown {
+      position: absolute;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      min-width: 260px;
+      z-index: 5000;
+      padding: 3px 0;
+      display: none;
+    }
+    .suggest-dropdown.visible { display: block; }
+    .suggest-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      transition: background 80ms;
+    }
+    .suggest-item:hover { background: var(--color-accent-soft); }
+    .suggest-type {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--color-surface-3);
+      color: var(--color-text-3);
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    /* ─── Status Bar ──────────────────────────────────────────────────────────────── */
+    #status-bar {
+      height: 22px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 10px;
+      background: var(--color-surface-2);
+      border-top: 1px solid var(--color-border);
+      font-size: var(--text-xs);
+      color: var(--color-text-3);
+      flex-shrink: 0;
+    }
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--color-border);
+    }
+    .status-dot.active { background: var(--color-red); animation: pulse 1s infinite alternate; }
+    .status-sep { color: var(--color-border); }
+
+    /* ─── Empty State ─────────────────────────────────────────────────────────────── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 8px;
+      color: var(--color-text-4);
+      padding: 24px;
+      text-align: center;
+    }
+    .empty-state-icon { opacity: 0.4; }
+    .empty-state-title { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-3); }
+    .empty-state-desc { font-size: var(--text-xs); line-height: 1.5; }
+
+    /* ─── Drag/drop indicator ─────────────────────────────────────────────────────── */
+    .drag-over { outline: 2px dashed var(--color-accent) !important; }
+    .drag-placeholder { height: 2px; background: var(--color-accent); margin: 0; }
+
+    /* ─── Recording pulse overlay ───────────────────────────────────────────────────────── */
+    #rec-indicator {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--color-red);
+      display: none;
+      z-index: 9998;
+    }
+    #rec-indicator.active {
+      display: block;
+      animation: rec-bar 1.5s ease-in-out infinite;
+    }
+    @keyframes rec-bar {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Recording indicator bar -->
+<div id="rec-indicator"></div>
+
+<!-- ─── App Shell ────────────────────────────────────────────────────────────────────────────── -->
+<div id="app">
+
+  <!-- ══ TOOLBAR ════════════════════════════════════════════════════════════════════ -->
+  <div id="toolbar">
+    <!-- Record -->
+    <button class="tb-btn" id="btn-record" title="Record (Alt+R)">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="7" r="5.5" fill="currentColor"/>
+      </svg>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <!-- Play Test Case -->
+    <button class="tb-btn" id="btn-play-tc" title="Play Test Case (F5)">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M3 2.5l8 4.5-8 4.5V2.5z" fill="#4ade80"/>
+      </svg>
+    </button>
+    <!-- Play Suite -->
+    <button class="tb-btn" id="btn-play-suite" title="Play Test Suite">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M2 2l6 3.5L2 9V2z" fill="#4ade80"/>
+        <path d="M7 2l5 3.5L7 9V2z" fill="#4ade80" opacity="0.5"/>
+      </svg>
+    </button>
+    <!-- Play All -->
+    <button class="tb-btn" id="btn-play-all" title="Play All Suites">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M1 2l5 3.5L1 9V2z" fill="#4ade80"/>
+        <path d="M5.5 2l5 3.5-5 3.5V2z" fill="#4ade80" opacity="0.6"/>
+        <path d="M10 4v6" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <!-- Stop -->
+    <button class="tb-btn" id="btn-stop" title="Stop (Esc)">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <rect x="3" y="3" width="8" height="8" rx="1" fill="#f87171"/>
+      </svg>
+    </button>
+    <!-- Pause/Resume -->
+    <button class="tb-btn" id="btn-pause" title="Pause / Resume">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <rect x="3" y="3" width="2.5" height="8" rx="1" fill="currentColor"/>
+        <rect x="8.5" y="3" width="2.5" height="8" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <!-- Step Through -->
+    <button class="tb-btn" id="btn-step" title="Step Into (F10)">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M3 3l5 4-5 4V3z" fill="currentColor"/>
+        <path d="M10 3v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <!-- Speed -->
+    <select class="tb-speed" id="speed-select" title="Playback Speed">
+      <option value="2000">Slow</option>
+      <option value="1000" selected>Medium</option>
+      <option value="500">Fast</option>
+      <option value="100">Fastest</option>
+    </select>
+
+    <div class="tb-sep"></div>
+
+    <!-- Export -->
+    <button class="tb-btn" id="btn-export" title="Export Test Cases">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M7 2v7m0 0l-2.5-2.5M7 9l2.5-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 11h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <!-- Settings -->
+    <button class="tb-btn" id="btn-settings" title="Settings">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.3"/>
+        <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.93 2.93l1.06 1.06M10.01 10.01l1.06 1.06M2.93 11.07l1.06-1.06M10.01 3.99l1.06-1.06" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <!-- Help -->
+    <button class="tb-btn" id="btn-help" title="Help & Documentation">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.3"/>
+        <path d="M5.5 5.5C5.5 4.67 6.17 4 7 4s1.5.67 1.5 1.5c0 .83-.5 1.2-1 1.5-.5.28-.5.5-.5 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <circle cx="7" cy="10" r="0.6" fill="currentColor"/>
+      </svg>
+    </button>
+
+    <!-- Theme toggle -->
+    <button class="tb-btn" id="btn-theme" title="Toggle Dark Mode">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M7 1a6 6 0 0 0 0 12A6 6 0 0 1 7 1z" fill="currentColor"/>
+      </svg>
+    </button>
+
+    <!-- Logo -->
+    <div class="tb-logo">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-label="SeleniumForge logo">
+        <rect x="1" y="1" width="5" height="5" rx="1" fill="currentColor"/>
+        <rect x="8" y="1" width="5" height="5" rx="1" fill="currentColor" opacity="0.5"/>
+        <rect x="1" y="8" width="5" height="5" rx="1" fill="currentColor" opacity="0.5"/>
+        <rect x="8" y="8" width="5" height="5" rx="1" fill="currentColor"/>
+      </svg>
+      SeleniumForge
+    </div>
+  </div>
+
+  <!-- ══ MAIN BODY ════════════════════════════════════════════════════════════════════ -->
+  <div id="main-body">
+
+    <!-- ── WORKSPACE SIDEBAR ──────────────────────────────────────────────────────────────────────── -->
+    <div id="sidebar">
+      <div class="sidebar-tabs" role="tablist">
+        <button class="sidebar-tab active" data-tab="suites" role="tab">Suites</button>
+        <button class="sidebar-tab" data-tab="dynamic" role="tab">Dynamic</button>
+        <button class="sidebar-tab" data-tab="data" role="tab">Data</button>
+        <button class="sidebar-tab" data-tab="extensions" role="tab">Ext.</button>
+        <button class="sidebar-tab" data-tab="profiles" role="tab">Profiles</button>
+      </div>
+
+      <!-- Test Suites panel -->
+      <div class="sidebar-panel active" id="panel-suites">
+        <div class="sidebar-toolbar">
+          <span>Test Suites</span>
+          <button class="icon-btn" id="btn-add-suite" title="New Suite">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </button>
+          <button class="icon-btn" title="Collapse All">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4.5l4-3 4 3M2 7.5l4 3 4-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="sidebar-tree" id="suite-tree" role="tree">
+          <!-- Suite 1 -->
+          <div class="tree-suite" draggable="true">
+            <div class="tree-suite-header" data-suite="suite-1">
+              <svg class="tree-arrow open" width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 2l3 3-3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg class="tree-suite-icon" width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="2" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 2V1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M8 2V1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M1 5h10" stroke="currentColor" stroke-width="1.2"/></svg>
+              <span class="tree-suite-name">Login Tests</span>
+              <span class="tree-suite-count">3</span>
+              <span class="tree-suite-status pass"></span>
+            </div>
+            <div class="tree-cases open">
+              <div class="tree-case selected" draggable="true" data-tc="tc-1">
+                <svg class="tree-case-icon" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1h8v8H1V1z" stroke="currentColor" stroke-width="1.2" rx="1"/><path d="M3 5h4M3 3h4M3 7h2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+                <span class="tree-case-name">Valid Login</span>
+                <span class="tree-case-status pass"></span>
+              </div>
+              <div class="tree-case" draggable="true" data-tc="tc-2">
+                <svg class="tree-case-icon" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1h8v8H1V1z" stroke="currentColor" stroke-width="1.2" rx="1"/><path d="M3 5h4M3 3h4M3 7h2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+                <span class="tree-case-name">Invalid Password</span>
+                <span class="tree-case-status fail"></span>
+              </div>
+              <div class="tree-case" draggable="true" data-tc="tc-3">
+                <svg class="tree-case-icon" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1h8v8H1V1z" stroke="currentColor" stroke-width="1.2" rx="1"/><path d="M3 5h4M3 3h4M3 7h2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+                <span class="tree-case-name">Forgot Password</span>
+                <span class="tree-case-status none"></span>
+              </div>
+            </div>
+          </div>
+          <!-- Suite 2 -->
+          <div class="tree-suite" draggable="true">
+            <div class="tree-suite-header" data-suite="suite-2">
+              <svg class="tree-arrow" width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 2l3 3-3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg class="tree-suite-icon" width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="2" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 2V1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M8 2V1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M1 5h10" stroke="currentColor" stroke-width="1.2"/></svg>
+              <span class="tree-suite-name">Checkout Flow</span>
+              <span class="tree-suite-count">5</span>
+              <span class="tree-suite-status none"></span>
+            </div>
+            <div class="tree-cases">
+              <div class="tree-case" draggable="true">
+                <svg class="tree-case-icon" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1h8v8H1V1z" stroke="currentColor" stroke-width="1.2" rx="1"/></svg>
+                <span class="tree-case-name">Add to Cart</span>
+                <span class="tree-case-status none"></span>
+              </div>
+              <div class="tree-case" draggable="true">
+                <svg class="tree-case-icon" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1h8v8H1V1z" stroke="currentColor" stroke-width="1.2" rx="1"/></svg>
+                <span class="tree-case-name">Apply Coupon</span>
+                <span class="tree-case-status none"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-bottom">
+          <button class="sidebar-bottom-btn">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="display:inline;margin-right:3px"><path d="M5 1v6M2 4.5l3 2.5 3-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 9h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Import
+          </button>
+          <button class="sidebar-bottom-btn" id="btn-export-tc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="display:inline;margin-right:3px"><path d="M5 7V1M2 3.5L5 1l3 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 9h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Export
+          </button>
+        </div>
+      </div>
+
+      <!-- Dynamic Suites panel -->
+      <div class="sidebar-panel" id="panel-dynamic">
+        <div class="tag-filter-area">
+          <label>Filter by tags</label>
+          <input type="text" class="tag-filter-input" placeholder="Enter tags, comma-separated…" id="dynamic-tag-input">
+        </div>
+        <div class="tag-chips">
+          <span class="tag-chip">@smoke</span>
+          <span class="tag-chip">@regression</span>
+          <span class="tag-chip">@login</span>
+          <span class="tag-chip">@checkout</span>
+          <span class="tag-chip">@critical</span>
+        </div>
+        <div class="sidebar-tree" id="dynamic-results">
+          <div class="empty-state">
+            <svg class="empty-state-icon" width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="11" stroke="currentColor" stroke-width="1.5"/><path d="M9 13h6M9 17h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <div class="empty-state-title">No Tags Selected</div>
+            <div class="empty-state-desc">Enter tags above to dynamically filter matching test cases.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Test Data panel -->
+      <div class="sidebar-panel" id="panel-data">
+        <div class="sidebar-toolbar">
+          <span>Test Data</span>
+          <button class="icon-btn" title="Upload Data File">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 4.5l3-3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 10h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="data-list">
+          <div class="data-item">
+            <svg class="data-item-icon" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 1h6l3 3v7H2V1z" stroke="currentColor" stroke-width="1.2"/><path d="M8 1v3h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <div>
+              <div class="data-item-name">users.csv</div>
+              <div class="data-item-rows">24 rows</div>
+            </div>
+          </div>
+          <div class="data-item">
+            <svg class="data-item-icon" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 1h6l3 3v7H2V1z" stroke="currentColor" stroke-width="1.2"/><path d="M8 1v3h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <div>
+              <div class="data-item-name">products.json</div>
+              <div class="data-item-rows">120 rows</div>
+            </div>
+          </div>
+          <div class="data-item">
+            <svg class="data-item-icon" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 1h6l3 3v7H2V1z" stroke="currentColor" stroke-width="1.2"/><path d="M8 1v3h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <div>
+              <div class="data-item-name">checkout_data.csv</div>
+              <div class="data-item-rows">8 rows</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Extensions panel -->
+      <div class="sidebar-panel" id="panel-extensions">
+        <div class="sidebar-toolbar">
+          <span>Extensions</span>
+          <button class="icon-btn" title="Add Extension">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="ext-list">
+          <div class="ext-item">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6h2l1.5-4 2 8 1.5-4H10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>custom-commands.js</span>
+          </div>
+          <div class="ext-item">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6h2l1.5-4 2 8 1.5-4H10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>xpath-helpers.js</span>
+          </div>
+        </div>
+        <div class="sidebar-bottom">
+          <button class="sidebar-bottom-btn">Load File</button>
+        </div>
+      </div>
+
+      <!-- Profiles panel -->
+      <div class="sidebar-panel" id="panel-profiles">
+        <div class="sidebar-toolbar">
+          <span>Profiles</span>
+          <button class="icon-btn" title="New Profile">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="profile-list">
+          <div class="profile-item active">
+            <span class="profile-active-dot"></span>
+            <span class="profile-name">Production</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="profile-item">
+            <span class="profile-active-dot inactive"></span>
+            <span class="profile-name">Staging</span>
+          </div>
+          <div class="profile-item">
+            <span class="profile-active-dot inactive"></span>
+            <span class="profile-name">Local Dev</span>
+          </div>
+        </div>
+        <div class="sidebar-bottom">
+          <button class="sidebar-bottom-btn">Edit Active</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resize handle H -->
+    <div class="resize-handle-h" id="resize-sidebar" role="separator" aria-orientation="vertical" title="Drag to resize"></div>
+
+    <!-- ── CENTER COLUMN ─────────────────────────────────────────────────────────────────────── -->
+    <div id="center-col">
+
+      <!-- ── TEST CASE EDITOR ─────────────────────────────────────────────────────────────────────── -->
+      <div id="editor-section">
+        <div class="editor-header">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="color:var(--color-accent);flex-shrink:0"><path d="M1 1h11v11H1V1z" stroke="currentColor" stroke-width="1.2" rx="1"/><path d="M4 6.5h5M4 4h5M4 9h3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+          <span class="editor-tc-name">Valid Login <span>— Login Tests</span></span>
+          <span class="badge badge-idle" id="exec-status-badge">Idle</span>
+          <span class="editor-meta">12 commands</span>
+        </div>
+
+        <!-- Command table -->
+        <div class="cmd-table-wrap" id="cmd-table-wrap">
+          <table class="cmd-table" id="cmd-table" role="grid">
+            <thead>
+              <tr>
+                <th title="Row #" role="columnheader">#</th>
+                <th role="columnheader">Command</th>
+                <th role="columnheader">Target</th>
+                <th role="columnheader">Value</th>
+              </tr>
+            </thead>
+            <tbody id="cmd-tbody">
+              <!-- Row 1 – comment -->
+              <tr class="cmd-row row-comment" data-row="0" draggable="true">
+                <td class="cmd-row-num" style="color:var(--color-text-4)">&#x2014;</td>
+                <td colspan="3" class="cmd-command">// Navigate to login page</td>
+              </tr>
+              <!-- Row 2 -->
+              <tr class="cmd-row row-pass" data-row="1" draggable="true">
+                <td class="cmd-row-num"><span class="cmd-row-status pass"></span></td>
+                <td><span class="cmd-command">open</span></td>
+                <td><span class="cmd-target">https://app.example.com/login</span></td>
+                <td></td>
+              </tr>
+              <!-- Row 3 -->
+              <tr class="cmd-row row-pass" data-row="2" draggable="true">
+                <td class="cmd-row-num"><span class="cmd-row-status pass"></span></td>
+                <td><span class="cmd-command">waitForElementVisible</span></td>
+                <td><span class="cmd-target">id=loginForm</span></td>
+                <td><span class="cmd-value">5000</span></td>
+              </tr>
+              <!-- Row 4 -->
+              <tr class="cmd-row row-pass" data-row="3" draggable="true">
+                <td class="cmd-row-num"><span class="cmd-row-status pass"></span></td>
+                <td><span class="cmd-command">type</span></td>
+                <td><span class="cmd-target">id=email</span></td>
+                <td><span class="cmd-value">${email}</span></td>
+              </tr>
+              <!-- Row 5 -->
+              <tr class="cmd-row row-pass" data-row="4" draggable="true">
+                <td class="cmd-row-num"><span class="cmd-row-status pass"></span></td>
+                <td><span class="cmd-command">type</span></td>
+                <td><span class="cmd-target">id=password</span></td>
+                <td><span class="cmd-value">${password}</span></td>
+              </tr>
+              <!-- Row 6 – breakpoint -->
+              <tr class="cmd-row row-pass has-breakpoint" data-row="5" draggable="true">
+                <td class="cmd-row-num"><span class="cmd-row-status pass"></span></td>
+                <td><span class="cmd-command">click</span></td>
+                <td><span class="cmd-target">css=button[type="submit"]</span></td>
+                <td></td>
+              </tr>
+              <!-- Row 7 – currently executing -->
+              <tr class="cmd-row row-executing selected" data-row="6" draggable="true">
+                <td class="cmd-row-num"><span class="cmd-row-status exec"></span></td>
+                <td><span class="cmd-command">waitForURL</span></td>
+                <td><span class="cmd-target">https://app.example.com/dashboard</span></td>
+                <td><span class="cmd-value">10000</span></td>
+              </tr>
+              <!-- Row 8 -->
+              <tr class="cmd-row" data-row="7" draggable="true">
+                <td class="cmd-row-num">8</td>
+                <td><span class="cmd-command">verifyTitle</span></td>
+                <td><span class="cmd-target">Dashboard — MyApp</span></td>
+                <td></td>
+              </tr>
+              <!-- Row 9 -->
+              <tr class="cmd-row" data-row="8" draggable="true">
+                <td class="cmd-row-num">9</td>
+                <td><span class="cmd-command">assertElementPresent</span></td>
+                <td><span class="cmd-target">css=.user-avatar</span></td>
+                <td></td>
+              </tr>
+              <!-- Row 10 -->
+              <tr class="cmd-row" data-row="9" draggable="true">
+                <td class="cmd-row-num">10</td>
+                <td><span class="cmd-command">storeText</span></td>
+                <td><span class="cmd-target">css=.username-display</span></td>
+                <td><span class="cmd-value">displayedName</span></td>
+              </tr>
+              <!-- Row 11 – skipped -->
+              <tr class="cmd-row row-skipped" data-row="10" draggable="true">
+                <td class="cmd-row-num">11</td>
+                <td><span class="cmd-command">echo</span></td>
+                <td><span class="cmd-target">Debug: logged in as ${displayedName}</span></td>
+                <td></td>
+              </tr>
+              <!-- Row 12 -->
+              <tr class="cmd-row" data-row="11" draggable="true">
+                <td class="cmd-row-num">12</td>
+                <td><span class="cmd-command">takeScreenshot</span></td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Command detail editor -->
+        <div class="cmd-detail">
+          <div class="cmd-detail-grid">
+            <label class="cmd-detail-label" for="det-command">Command</label>
+            <input type="text" class="cmd-detail-input" id="det-command" value="waitForURL" autocomplete="off" list="command-list">
+            <datalist id="command-list">
+              <option value="open">
+              <option value="click">
+              <option value="type">
+              <option value="verifyTitle">
+              <option value="assertElementPresent">
+              <option value="waitForElementVisible">
+              <option value="waitForURL">
+              <option value="storeText">
+              <option value="storeValue">
+              <option value="echo">
+              <option value="pause">
+              <option value="executeScript">
+              <option value="takeScreenshot">
+              <option value="if">
+              <option value="else">
+              <option value="end">
+              <option value="while">
+              <option value="forEach">
+              <option value="repeatIf">
+              <option value="times">
+              <option value="run">
+            </datalist>
+            <label class="cmd-detail-label" for="det-target">Target</label>
+            <input type="text" class="cmd-detail-input" id="det-target" value="https://app.example.com/dashboard" autocomplete="off">
+            <label class="cmd-detail-label" for="det-value">Value</label>
+            <input type="text" class="cmd-detail-input" id="det-value" value="10000" autocomplete="off">
+          </div>
+          <div class="cmd-detail-actions">
+            <button class="cmd-detail-btn" id="btn-insert-cmd">Insert Row</button>
+            <button class="cmd-detail-btn" id="btn-del-cmd">Delete Row</button>
+            <button class="cmd-detail-btn" id="btn-toggle-bp">Toggle Breakpoint</button>
+            <button class="cmd-detail-btn" id="btn-exec-cmd">Execute Step</button>
+            <button class="cmd-detail-btn primary" id="btn-apply-cmd">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resize handle V -->
+      <div class="resize-handle-v" id="resize-artifacts"></div>
+
+      <!-- ── ARTIFACTS PANEL ─────────────────────────────────────────────────────────────────────── -->
+      <div id="artifacts">
+        <div class="artifacts-tabs" role="tablist">
+          <button class="artifacts-tab active" data-atab="log">Log</button>
+          <button class="artifacts-tab" data-atab="screenshots">Screenshots <span class="tab-badge">3</span></button>
+          <button class="artifacts-tab" data-atab="reference">Reference</button>
+          <button class="artifacts-tab" data-atab="variables">Variables</button>
+          <button class="artifacts-tab" data-atab="healing">Self-Healing <span class="tab-badge" style="background:var(--color-yellow)">2</span></button>
+        </div>
+
+        <div class="artifacts-content">
+
+          <!-- Log panel -->
+          <div class="artifacts-panel active" id="apanel-log">
+            <div class="log-toolbar">
+              <div class="log-filter">
+                <button class="log-filter-btn f-all active">ALL</button>
+                <button class="log-filter-btn f-pass">PASS</button>
+                <button class="log-filter-btn f-fail">FAIL</button>
+                <button class="log-filter-btn f-info">INFO</button>
+                <button class="log-filter-btn f-warn">WARN</button>
+              </div>
+              <button class="icon-btn" title="Clear log" style="margin-left:auto">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 2l7 7M9 2L2 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+            <div class="log-entries" id="log-entries">
+              <div class="log-entry"><span class="log-ts">14:32:01</span><span class="log-level INFO">INFO</span><span class="log-msg">Test suite &quot;Login Tests&quot; started</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:01</span><span class="log-level INFO">INFO</span><span class="log-msg">Running: Valid Login</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:02</span><span class="log-level PASS">PASS</span><span class="log-msg">open | https://app.example.com/login</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:03</span><span class="log-level PASS">PASS</span><span class="log-msg">waitForElementVisible | id=loginForm | 5000ms</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:03</span><span class="log-level PASS">PASS</span><span class="log-msg">type | id=email | test@example.com</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:04</span><span class="log-level PASS">PASS</span><span class="log-msg">type | id=password | &bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:04</span><span class="log-level PASS">PASS</span><span class="log-msg">click | css=button[type=&quot;submit&quot;]</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:05</span><span class="log-level INFO">INFO</span><span class="log-msg">Breakpoint hit at row 6. Execution paused.</span></div>
+              <div class="log-entry"><span class="log-ts">14:32:06</span><span class="log-level INFO">INFO</span><span class="log-msg">Executing: waitForURL | https://app.example.com/dashboard</span></div>
+            </div>
+          </div>
+
+          <!-- Screenshots panel -->
+          <div class="artifacts-panel" id="apanel-screenshots">
+            <div class="screenshots-grid">
+              <div class="screenshot-thumb">
+                <div style="width:100%;height:100%;background:linear-gradient(135deg,#e0f2fe 0%,#bae6fd 100%);display:flex;align-items:center;justify-content:center;">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="1.5" stroke="#0369a1" stroke-width="1.3"/><circle cx="10" cy="10" r="3" stroke="#0369a1" stroke-width="1.2"/></svg>
+                </div>
+              </div>
+              <div class="screenshot-thumb">
+                <div style="width:100%;height:100%;background:linear-gradient(135deg,#f0fdf4 0%,#bbf7d0 100%);display:flex;align-items:center;justify-content:center;">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="1.5" stroke="#16a34a" stroke-width="1.3"/><path d="M7 10l2.5 2.5 4-4" stroke="#16a34a" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+              </div>
+              <div class="screenshot-thumb">
+                <div style="width:100%;height:100%;background:linear-gradient(135deg,#fef2f2 0%,#fecaca 100%);display:flex;align-items:center;justify-content:center;">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="1.5" stroke="#dc2626" stroke-width="1.3"/><path d="M7 7l6 6M13 7l-6 6" stroke="#dc2626" stroke-width="1.3" stroke-linecap="round"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reference panel -->
+          <div class="artifacts-panel" id="apanel-reference">
+            <div class="ref-content">
+              <div class="ref-cmd-name">waitForURL</div>
+              <div class="ref-desc">Waits for the current page URL to match the specified pattern. Supports exact match, glob patterns, and regular expressions.</div>
+              <dl class="ref-grid">
+                <dt>Target</dt><dd>URL pattern (string, glob, or /regex/)</dd>
+                <dt>Value</dt><dd>Timeout in milliseconds (default: 30000)</dd>
+                <dt>Throws</dt><dd>TimeoutError if URL does not match within timeout</dd>
+              </dl>
+              <div class="ref-example-label" style="margin-top:8px">Example</div>
+              <div class="ref-example">waitForURL | https://example.com/dashboard | 5000</div>
+            </div>
+          </div>
+
+          <!-- Variables panel -->
+          <div class="artifacts-panel" id="apanel-variables">
+            <table class="var-table">
+              <thead>
+                <tr>
+                  <th style="width:40%">Variable</th>
+                  <th>Current Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>email</td><td>test@example.com</td></tr>
+                <tr><td>password</td><td>&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</td></tr>
+                <tr><td>baseURL</td><td>https://app.example.com</td></tr>
+                <tr><td>displayedName</td><td></td></tr>
+                <tr><td>timeout</td><td>5000</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Self-Healing panel -->
+          <div class="artifacts-panel" id="apanel-healing">
+            <div class="heal-list">
+              <div class="heal-item">
+                <div class="heal-item-header">
+                  <span class="heal-badge">HEALED</span>
+                  <span class="heal-cmd">click</span>
+                  <span style="color:var(--color-text-3);font-size:var(--text-xs)">row 6 — confidence 87%</span>
+                </div>
+                <div class="heal-locators">
+                  <span class="heal-original">#submitBtn</span>
+                  <span class="heal-arrow">→</span>
+                  <span class="heal-suggested">css=button[type="submit"]</span>
+                </div>
+                <div class="heal-actions">
+                  <button class="heal-approve">Approve</button>
+                  <button class="heal-reject">Reject</button>
+                </div>
+              </div>
+              <div class="heal-item">
+                <div class="heal-item-header">
+                  <span class="heal-badge">HEALED</span>
+                  <span class="heal-cmd">assertElementPresent</span>
+                  <span style="color:var(--color-text-3);font-size:var(--text-xs)">row 9 — confidence 92%</span>
+                </div>
+                <div class="heal-locators">
+                  <span class="heal-original">.user-pic</span>
+                  <span class="heal-arrow">→</span>
+                  <span class="heal-suggested">css=.user-avatar</span>
+                </div>
+                <div class="heal-actions">
+                  <button class="heal-approve">Approve</button>
+                  <button class="heal-reject">Reject</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── STATUS BAR ─────────────────────────────────────────────────────────────────────────── -->
+  <div id="status-bar">
+    <div class="status-item">
+      <div class="status-dot active"></div>
+      <span>Recording</span>
+    </div>
+    <div class="status-sep">|</div>
+    <div class="status-item">
+      <span id="status-cmd-count">7 / 12 commands</span>
+    </div>
+    <div class="status-sep">|</div>
+    <div class="status-item">
+      <span id="status-suite-name">Login Tests</span>
+    </div>
+    <div class="status-sep">|</div>
+    <div class="status-item">
+      <span id="status-tc-name">Valid Login</span>
+    </div>
+    <div class="status-sep" style="margin-left:auto">|</div>
+    <div class="status-item">
+      <span id="status-profile">Profile: Production</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── Context Menu ─────────────────────────────────────────────────────────────────────────── -->
+<div id="context-menu" role="menu">
+  <div class="ctx-item" role="menuitem">Insert Row Above <span class="ctx-shortcut">Ins</span></div>
+  <div class="ctx-item" role="menuitem">Insert Row Below</div>
+  <div class="ctx-item" role="menuitem">Duplicate Row <span class="ctx-shortcut">⌘D</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" role="menuitem">Toggle Breakpoint <span class="ctx-shortcut">F9</span></div>
+  <div class="ctx-item" role="menuitem">Execute Step <span class="ctx-shortcut">F8</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" role="menuitem">Delete Row <span class="ctx-shortcut">Del</span></div>
+</div>
+
+<!-- ─── Export Modal ─────────────────────────────────────────────────────────────────────────── -->
+<div id="export-overlay" role="dialog" aria-modal="true" aria-labelledby="export-title">
+  <div id="export-modal">
+    <div class="modal-header">
+      <span class="modal-title" id="export-title">Export Test Cases</span>
+      <button class="modal-close" id="close-export" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="export-left">
+        <div class="export-left-title">Format</div>
+        <div class="export-format-list">
+          <div class="export-format-item selected">
+            <div class="export-format-icon" style="color:#2563eb">PY</div>
+            <div class="export-format-info">
+              <div class="export-format-name">Python</div>
+              <div class="export-format-sub">pytest + Selenium</div>
+            </div>
+          </div>
+          <div class="export-format-item">
+            <div class="export-format-icon" style="color:#eab308">JS</div>
+            <div class="export-format-info">
+              <div class="export-format-name">JavaScript</div>
+              <div class="export-format-sub">WebdriverIO / Mocha</div>
+            </div>
+          </div>
+          <div class="export-format-item">
+            <div class="export-format-icon" style="color:#16a34a">Java</div>
+            <div class="export-format-info">
+              <div class="export-format-name">Java</div>
+              <div class="export-format-sub">JUnit5 / TestNG</div>
+            </div>
+          </div>
+          <div class="export-format-item">
+            <div class="export-format-icon" style="color:#7c3aed">C#</div>
+            <div class="export-format-info">
+              <div class="export-format-name">C# / .NET</div>
+              <div class="export-format-sub">NUnit / MSTest</div>
+            </div>
+          </div>
+          <div class="export-format-item">
+            <div class="export-format-icon" style="color:#ea580c">RB</div>
+            <div class="export-format-info">
+              <div class="export-format-name">Ruby</div>
+              <div class="export-format-sub">RSpec</div>
+            </div>
+          </div>
+          <div class="export-format-item">
+            <div class="export-format-icon" style="color:#0369a1">{}</div>
+            <div class="export-format-info">
+              <div class="export-format-name">JSON</div>
+              <div class="export-format-sub">Raw test data</div>
+            </div>
+          </div>
+          <div class="export-format-item">
+            <div class="export-format-icon" style="color:#374151">FE</div>
+            <div class="export-format-info">
+              <div class="export-format-name">Selenium IDE</div>
+              <div class="export-format-sub">.side format</div>
+            </div>
+          </div>
+          <div class="export-format-item">
+            <div class="export-format-icon" style="color:#b45309">RF</div>
+            <div class="export-format-info">
+              <div class="export-format-name">Robot Framework</div>
+              <div class="export-format-sub">.robot file</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="export-right">
+        <div class="export-right-toolbar">
+          <span class="export-right-title">Preview — Python (pytest)</span>
+          <button class="btn btn-secondary" style="font-size:11px;padding:3px 8px">Copy</button>
+        </div>
+        <div class="export-preview">
+          <div class="export-code">import pytest
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+class TestLoginTests:
+
+    def test_valid_login(self, driver):
+        """Valid Login"""
+        # Navigate to login page
+        driver.get("https://app.example.com/login")
+        WebDriverWait(driver, 5).until(
+            EC.visibility_of_element_located((By.ID, "loginForm"))
+        )
+        driver.find_element(By.ID, "email").send_keys(email)
+        driver.find_element(By.ID, "password").send_keys(password)
+        driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]').click()
+        WebDriverWait(driver, 10).until(
+            EC.url_to_be("https://app.example.com/dashboard")
+        )
+        assert driver.title == "Dashboard — MyApp"
+        assert driver.find_element(By.CSS_SELECTOR, ".user-avatar")
+        displayedName = driver.find_element(
+            By.CSS_SELECTOR, ".username-display").text
+        driver.save_screenshot("screenshot.png")</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span class="modal-footer-info">Exporting 1 test case from &quot;Login Tests&quot;</span>
+      <button class="btn btn-secondary" id="close-export-2">Cancel</button>
+      <button class="btn btn-primary">Download File</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Settings Modal ────────────────────────────────────────────────────────────────────────── -->
+<div id="settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div id="settings-modal">
+    <div class="modal-header">
+      <span class="modal-title" id="settings-title">Settings</span>
+      <button class="modal-close" id="close-settings" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="flex-direction:column;overflow-y:auto">
+      <div class="settings-section">
+        <div class="settings-section-title">Appearance</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Dark Mode</div>
+          </div>
+          <div class="toggle" id="toggle-theme"></div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Font Size</div>
+          </div>
+          <select style="width:80px;height:24px;font-size:11px;padding:0 4px">
+            <option>11px</option>
+            <option selected>12px</option>
+            <option>13px</option>
+            <option>14px</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Recording</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Capture hover events</div>
+            <div class="settings-sub">Record mouseOver / mouseOut commands</div>
+          </div>
+          <div class="toggle on" id="toggle-hover"></div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Auto-generate assertions</div>
+            <div class="settings-sub">Add assertElementPresent after each click</div>
+          </div>
+          <div class="toggle" id="toggle-assert"></div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Smart waits</div>
+            <div class="settings-sub">Insert waitForElementVisible before interactions</div>
+          </div>
+          <div class="toggle on" id="toggle-wait"></div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Playback</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Default speed</div>
+          </div>
+          <select style="width:80px;height:24px;font-size:11px;padding:0 4px">
+            <option>Slow</option>
+            <option selected>Medium</option>
+            <option>Fast</option>
+            <option>Fastest</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Screenshot on failure</div>
+          </div>
+          <div class="toggle on" id="toggle-ss"></div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Self-healing locators</div>
+            <div class="settings-sub">Auto-repair broken selectors with AI</div>
+          </div>
+          <div class="toggle on" id="toggle-heal"></div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Advanced</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Base URL</div>
+          </div>
+          <input type="text" style="width:140px;height:24px;font-size:11px;padding:0 6px" placeholder="https://" value="https://app.example.com">
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Implicit wait (ms)</div>
+          </div>
+          <input type="number" style="width:60px;height:24px;font-size:11px;padding:0 6px" value="5000">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span class="modal-footer-info">Changes are saved automatically</span>
+      <button class="btn btn-secondary" id="close-settings-2">Close</button>
+      <button class="btn btn-primary" id="btn-reset-settings">Reset to Defaults</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Locator Suggestion Dropdown (example, positioned by JS) ─────────────────────── -->
+<div class="suggest-dropdown" id="suggest-dropdown">
+  <div class="suggest-item">
+    <span class="suggest-type">CSS</span>
+    <span>button[type="submit"]</span>
+  </div>
+  <div class="suggest-item">
+    <span class="suggest-type">ID</span>
+    <span>id=submit-btn</span>
+  </div>
+  <div class="suggest-item">
+    <span class="suggest-type">XPATH</span>
+    <span>//button[@type='submit']</span>
+  </div>
+  <div class="suggest-item">
+    <span class="suggest-type">TEXT</span>
+    <span>link=Sign In</span>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="js/core/storage.js" type="module"></script>
+<script src="js/core/state.js" type="module"></script>
+<script src="js/core/messaging.js" type="module"></script>
+<script src="js/engine/recorder.js" type="module"></script>
+<script src="js/engine/player.js" type="module"></script>
+<script src="js/engine/selfhealing.js" type="module"></script>
+<script src="js/engine/controlflow.js" type="module"></script>
+<script src="js/export/exporters.js" type="module"></script>
+<script src="js/ui/app.js" type="module"></script>
+
+</body>
+</html>
