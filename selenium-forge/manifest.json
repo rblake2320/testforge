@@ -10,7 +10,8 @@
     "tabs",
     "downloads",
     "contextMenus",
-    "notifications"
+    "notifications",
+    "sidePanel"
   ],
   "host_permissions": ["<all_urls>"],
   "action": {
