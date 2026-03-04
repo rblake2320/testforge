@@ -1,0 +1,100 @@
+name: SeleniumForge Extension CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'selenium-forge/**'
+  pull_request:
+    paths:
+      - 'selenium-forge/**'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate Extension
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate manifest.json
+        run: |
+          echo "Validating manifest.json syntax..."
+          node -e "JSON.parse(require('fs').readFileSync('selenium-forge/manifest.json', 'utf8'))"
+          echo "✅ manifest.json is valid JSON"
+
+      - name: Check JavaScript syntax
+        run: |
+          echo "Checking JavaScript files for syntax errors..."
+          find selenium-forge -name '*.js' | while read -r file; do
+            node --check "$file" && echo "  ✅ $file" || { echo "  ❌ $file"; exit 1; }
+          done
+
+      - name: Verify manifest file references
+        run: |
+          echo "Verifying all files referenced in manifest exist..."
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const manifest = JSON.parse(fs.readFileSync('selenium-forge/manifest.json', 'utf8'));
+            const errors = [];
+
+            // Check service worker
+            const sw = manifest.background?.service_worker;
+            if (sw && !fs.existsSync(path.join('selenium-forge', sw))) {
+              errors.push('Missing service worker: ' + sw);
+            }
+
+            // Check content scripts
+            (manifest.content_scripts || []).forEach(cs => {
+              (cs.js || []).forEach(f => {
+                if (!fs.existsSync(path.join('selenium-forge', f)))
+                  errors.push('Missing content script JS: ' + f);
+              });
+              (cs.css || []).forEach(f => {
+                if (!fs.existsSync(path.join('selenium-forge', f)))
+                  errors.push('Missing content script CSS: ' + f);
+              });
+            });
+
+            // Check icons
+            Object.values(manifest.icons || {}).forEach(f => {
+              if (!fs.existsSync(path.join('selenium-forge', f)))
+                errors.push('Missing icon: ' + f);
+            });
+
+            // Check popup
+            const popup = manifest.action?.default_popup;
+            if (popup && !fs.existsSync(path.join('selenium-forge', popup)))
+              errors.push('Missing popup: ' + popup);
+
+            // Check side panel
+            const sidePanel = manifest.side_panel?.default_path;
+            if (sidePanel && !fs.existsSync(path.join('selenium-forge', sidePanel)))
+              errors.push('Missing side panel: ' + sidePanel);
+
+            if (errors.length > 0) {
+              errors.forEach(e => console.error('❌ ' + e));
+              process.exit(1);
+            }
+            console.log('✅ All manifest references exist');
+          "
+
+      - name: Package extension
+        run: |
+          cd selenium-forge
+          zip -r ../selenium-forge-extension.zip . -x '.*' -x '__MACOSX/*'
+          echo "📦 Extension packaged as selenium-forge-extension.zip"
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-forge-extension
+          path: selenium-forge-extension.zip
+          retention-days: 30
